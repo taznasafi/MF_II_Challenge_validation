@@ -25,13 +25,13 @@ for x in fips_list:
         importSHP.import_shapefiles_to_gdb("*")
         importSHP.make_grid_id(importSHP.outputGDB)
 
-
         # 01: filter out the speed points with the state grid for each users
         pointIntersect = SV.SpeedChecker()
         pointIntersect.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         pointIntersect.outputGDBName = "_01_selected_points"
         pointIntersect.create_gdb()
         pointIntersect.inputGDB = importSHP.outputGDB
+
         pointIntersect.inputGDB2 = path_links.user_input_speed_points_gdb_path
         pointIntersect.outputGDB = path.join(pointIntersect.outputpathfolder, pointIntersect.outputGDBName+".gdb")
         pointIntersect.intersect_speed_points_with_state_files(fc1_wildcard="state_boundary_{}".format(x), fc2_wildcard="*")
@@ -130,7 +130,7 @@ for x in fips_list:
         diss_grid.merge_measured_unmeasured_coverages(path_links.number_of_users)
 
 
-        #10
+        #10: create unmeasured area
         diss_grid = SV.SpeedChecker()
         diss_grid.inputGDB = r"D:\FCC_GIS_Projects\MFII\MF_II_Challenge_validation\Input\baseline_55\_09_merged_unmeasured_coverages.gdb"
         diss_grid.outputGDBName = "_10_diss_merged_unmeasured_coverages"
@@ -142,13 +142,26 @@ for x in fips_list:
         diss_grid.calculateField(field_name="agg_unmeasured_area",expression="!Shape.geodesicArea@SQUAREMETERS!",
                                  input_gdb= diss_grid.outputGDB, fc_wildcard="*")
 
+        #11: Validate Coverages
+
+        validate_results = SV.SpeedChecker()
+        validate_results.inputGDB = diss_grid.outputGDB
+        validate_results.inputGDB2 = importSHP.outputGDB
+        validate_results.outputGDBName = "_11_validated_results"
+        validate_results.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        validate_results.create_gdb()
+        validate_results.outputGDB = path.join(validate_results.outputpathfolder, validate_results.outputGDBName + ".gdb")
+        validate_results.create_results()
+        validate_results.inputGDB = validate_results.outputGDB
+        validate_results.calculate_results()
+
+
 
 
 
 
     except:
         print("error in your script")
-
 
 
 

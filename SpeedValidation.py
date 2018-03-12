@@ -5,7 +5,7 @@ import logging
 import time
 import get_path
 import os
-from re import match
+from re import match, search
 
 formatter = ('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.basicConfig(filename=r"{}_Log_{}.csv".format(__name__.replace(".", "_"), time.strftime("%Y_%m_%d_%H_%M")),
@@ -13,13 +13,14 @@ logging.basicConfig(filename=r"{}_Log_{}.csv".format(__name__.replace(".", "_"),
 
 class SpeedChecker:
     def __init__(self, input_path=None, inputGDB=None, inputGDB2 = None, referenceGDB = None,
-                 outputGDBname=None, outputpathfolder=None, outputGDB=None):
+                 outputGDBname=None, outputpathfolder=None, outputfolder_name = None, outputGDB=None):
         self.inputpath = input_path
         self.inputGDB = inputGDB
         self.inputGDB2 = inputGDB2
         self.referenceGDB = referenceGDB
         self.outputGDBName = outputGDBname
         self.outputpathfolder = outputpathfolder
+        self.outputfolder_name = outputfolder_name
         self.outputGDB = outputGDB
 
         arcpy.env.qualifiedFieldNames = False
@@ -674,7 +675,7 @@ class SpeedChecker:
             arcpy.AddError(msgs)
             print(msgs)
         except:
-            arcpy.Delete_management("coverage_temp")
+
             tb = sys.exc_info()[2]
             tbinfo = traceback.format_tb(tb)[0]
             pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
@@ -686,6 +687,105 @@ class SpeedChecker:
             logging.warning(msgs)
 
 
+
+    def create_results(self):
+        logging.info("validating_results")
+        try:
+
+            for x in get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb():
+                print(x)
+
+                fc_list = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb("state_boundary_*")
+
+                regex = r"(?:\W)?(?P<user>\d{1,2})$"
+                userdic = search(regex, os.path.basename(x)).groupdict()
+
+
+                outfeature = os.path.join(self.outputGDB, "state_boundary_results_user_{}".format(userdic["user"]))
+                if arcpy.Exists(outfeature):
+                    print("the file exits, skipping!!!!!!!!")
+                else:
+
+                    arcpy.MakeFeatureLayer_management(fc_list[0], "temp_state_boundary")
+
+                    print("\nadding fields")
+                    arcpy.AddField_management("temp_state_boundary", "agg_unmeasured","Double")
+                    arcpy.AddField_management("temp_state_boundary", "agg_unmeasured_pct", "Double")
+                    arcpy.AddField_management("temp_state_boundary", "agg_measured_pct", "Double")
+
+                    print("\nJoining {} to {} based on ID field".format(os.path.basename(x), os.path.basename(fc_list[0])))
+                    logging.info("Joining {} to {} based on ID field".format(os.path.basename(x), os.path.basename(fc_list[0])))
+
+                    arcpy.AddJoin_management("temp_state_boundary", "ID", x, "ID", "KEEP_ALL")
+
+
+                    arcpy.CopyFeatures_management("temp_state_boundary", outfeature)
+                    logging.info(arcpy.GetMessages(0))
+                    arcpy.Delete_management("temp_state_boundary")
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+        except:
+            arcpy.Delete_management("temp_state_boundary")
+            tb = sys.exc_info()[2]
+            tbinfo = traceback.format_tb(tb)[0]
+            pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
+            msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
+            arcpy.AddError(pymsg)
+            arcpy.AddError(msgs)
+            print(pymsg)
+            print(msgs)
+            logging.warning(msgs)
+
+    def calculate_results(self):
+        logging.info("calcuating_results")
+
+        for fc in get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb():
+            print(os.path.basename(fc))
+            arcpy.CalculateField_management(fc, "agg_unmeasured", "!agg_unmeasured_area!",
+                                            expression_type="PYTHON3")
+            arcpy.CalculateField_management(fc, "agg_unmeasured_pct", "(!agg_unmeasured!/!CH_AREA!)*100",
+                                            expression_type="PYTHON3")
+            arcpy.CalculateField_management(fc, "agg_measured_pct", "100-!agg_unmeasured_pct!",
+                                            expression_type="PYTHON3")
+
+
+
+
+    def export_results(self):
+        logging.info("exporting_results")
+
+        arcpy.env.overwriteOutput = True
+        try:
+
+            for fc in get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb():
+
+                output = os.path.join(self.outputpathfolder, "results_{}.csv".format(os.path.basename(fc)))
+
+                arcpy.ExportXYv_stats(fc, ["STATE_FIPS", "GRID_COL", "GRID_ROW",
+                                           "agg_unmeasured", "agg_unmeasured_pct", "agg_measured_pct"],
+                                      "Comma", output, "ADD_FIELD_NAMES")
+
+            arcpy.env.overwriteOutput = False
+
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+        except:
+            arcpy.env.overwriteOutput = False
+            tb = sys.exc_info()[2]
+            tbinfo = traceback.format_tb(tb)[0]
+            pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
+            msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
+            arcpy.AddError(pymsg)
+            arcpy.AddError(msgs)
+            print(pymsg)
+            print(msgs)
+            logging.warning(msgs)
 
 
 
