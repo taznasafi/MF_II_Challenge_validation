@@ -51,8 +51,6 @@ class pathFinder:
 
 
 
-
-
     @classmethod
     def get_shapefile_path_walk(cls, path):
         file_loc = []
