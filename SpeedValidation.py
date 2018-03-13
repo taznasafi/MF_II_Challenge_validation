@@ -39,7 +39,6 @@ class SpeedChecker:
             print(message)
             logging.warning(message)
 
-
     def create_gdb(self):
         print("Creating gdb")
         logging.info("Creating GDB named: {}".format(self.outputGDBName))
@@ -83,8 +82,6 @@ class SpeedChecker:
                                             expression_type="PYTHON3",
                                             code_block=codeblock)
             print("added id field to: {}".format(os.path.basename(x)))
-
-
 
     @classmethod
     def deleteEmptyfeaturesFiles(cls, path, type=None):
@@ -144,7 +141,6 @@ class SpeedChecker:
             arcpy.CalculateField_management(fc,field_name,expression, expression_type="PYTHON3")
             print(arcpy.GetMessages(0))
 
-
     def import_shapefiles_to_gdb(self, wildcard=None):
         logging.info("importing shapefiles")
 
@@ -175,8 +171,6 @@ class SpeedChecker:
             print(pymsg)
             print(msgs)
             logging.error(pymsg)
-
-
 
     def intersect_speed_points_with_state_files(self, fc1_wildcard, fc2_wildcard):
         try:
@@ -220,8 +214,6 @@ class SpeedChecker:
             print(pymsg)
             print(msgs)
             logging.warning(msgs)
-
-
 
     def intersect_points_with_coverages(self, number_of_users=None):
         print("intersecting points with coverages")
@@ -325,7 +317,6 @@ class SpeedChecker:
             print(msgs)
             logging.warning(msgs)
 
-
     def select_state_boundary_grid_cells(self, number_of_users=None):
         print("selecting boundaries")
         arcpy.Delete_management("state_boundary_temp")
@@ -416,7 +407,6 @@ class SpeedChecker:
             print(msgs)
             logging.warning(msgs)
 
-
     def intersect_buffered_area_with_coverage(self, number_of_users):
         print("intersecting buffered polygons with coverage")
         logging.info("intersecting buffered polygons with coverage")
@@ -481,9 +471,6 @@ class SpeedChecker:
             print(msgs)
             logging.warning(msgs)
 
-
-
-
     def select_Coverage_by_selected_grid(self, number_of_users):
         print("intersecting buffered polygons with coverage")
         logging.info("intersecting buffered polygons with coverage")
@@ -542,9 +529,6 @@ class SpeedChecker:
             print(pymsg)
             print(msgs)
             logging.warning(msgs)
-
-
-
 
     def erase_measured_from_selected_coverage(self, number_of_users):
 
@@ -605,8 +589,6 @@ class SpeedChecker:
             print(msgs)
             logging.warning(msgs)
 
-
-
     def merge_measured_unmeasured_coverages(self, number_of_users):
 
         logging.info("intersecting buffered polygons with coverage")
@@ -650,8 +632,6 @@ class SpeedChecker:
             print(msgs)
             logging.warning(msgs)
 
-
-
     def diss_merge_unmeasured_coverages(self):
 
         logging.info("diss merged unmeasured coverages")
@@ -686,8 +666,6 @@ class SpeedChecker:
             print(msgs)
             logging.warning(msgs)
 
-
-
     def create_results(self):
         logging.info("validating_results")
         try:
@@ -695,13 +673,15 @@ class SpeedChecker:
             for x in get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb():
                 print(x)
 
-                fc_list = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb("state_boundary_*")
+                fc_list = get_path.pathFinder(env_0=self.inputGDB2)\
+                    .get_file_path_with_wildcard_from_gdb("state_boundary_*")
 
                 regex = r"(?:\W)?(?P<user>\d{1,2})$"
                 userdic = search(regex, os.path.basename(x)).groupdict()
 
 
-                outfeature = os.path.join(self.outputGDB, "state_boundary_results_user_{}".format(userdic["user"]))
+                outfeature = os.path.join(self.outputGDB,
+                                          "state_boundary_results_user_{}".format(userdic["user"]))
                 if arcpy.Exists(outfeature):
                     print("the file exits, skipping!!!!!!!!")
                 else:
@@ -713,13 +693,15 @@ class SpeedChecker:
                     arcpy.AddField_management("temp_state_boundary", "agg_unmeasured_pct", "Double")
                     arcpy.AddField_management("temp_state_boundary", "agg_measured_pct", "Double")
 
-                    print("\nJoining {} to {} based on ID field".format(os.path.basename(x), os.path.basename(fc_list[0])))
-                    logging.info("Joining {} to {} based on ID field".format(os.path.basename(x), os.path.basename(fc_list[0])))
+                    print("\nJoining {} to {} based on ID field".format(os.path.basename(x),
+                                                                        os.path.basename(fc_list[0])))
+                    logging.info("Joining {} to {} based on ID field".format(os.path.basename(x),
+                                                                             os.path.basename(fc_list[0])))
 
                     arcpy.AddJoin_management("temp_state_boundary", "ID", x, "ID", "KEEP_ALL")
 
-
-                    arcpy.CopyFeatures_management("temp_state_boundary", outfeature)
+                    arcpy.CopyFeatures_management("temp_state_boundary",
+                                                  outfeature)
                     logging.info(arcpy.GetMessages(0))
                     arcpy.Delete_management("temp_state_boundary")
 
@@ -751,9 +733,6 @@ class SpeedChecker:
             arcpy.CalculateField_management(fc, "agg_measured_pct", "100-!agg_unmeasured_pct!",
                                             expression_type="PYTHON3")
 
-
-
-
     def export_results(self):
         logging.info("exporting_results")
 
@@ -770,7 +749,6 @@ class SpeedChecker:
 
             arcpy.env.overwriteOutput = False
 
-
         except arcpy.ExecuteError:
             msgs = arcpy.GetMessages(2)
             arcpy.AddError(msgs)
@@ -786,111 +764,3 @@ class SpeedChecker:
             print(pymsg)
             print(msgs)
             logging.warning(msgs)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
