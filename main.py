@@ -54,7 +54,7 @@ for x in fips_list:
         mergePoints = SV.SpeedChecker()
         mergePoints.inputGDB = coverageIntersect.outputGDB
         mergePoints.outputGDBName = "_03_merge_coverage_points"
-        mergePoints.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        mergePoints.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         mergePoints.create_gdb()
         mergePoints.outputGDB = path.join(mergePoints.outputpathfolder, mergePoints.outputGDBName + ".gdb")
         mergePoints.merge_points(number_of_users=path_links.number_of_users)
@@ -66,7 +66,7 @@ for x in fips_list:
         select.inputGDB = importSHP.outputGDB
         select.inputGDB2 = mergePoints.outputGDB
         select.outputGDBName = "_04_selected_state_boundary"
-        select.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        select.outputpathfolder = path.join(path_links.input_base_folder,importSHP.outputGDBName)
         select.create_gdb()
         select.outputGDB = path.join(select.outputpathfolder, select.outputGDBName + ".gdb")
         select.select_state_boundary_grid_cells(path_links.number_of_users)
@@ -76,7 +76,7 @@ for x in fips_list:
         buffer = SV.SpeedChecker()
         buffer.inputGDB = pointIntersect.outputGDB
         buffer.outputGDBName = "_05_buffered_polygons"
-        buffer.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        buffer.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         buffer.create_gdb()
         buffer.outputGDB = path.join(buffer.outputpathfolder, buffer.outputGDBName + ".gdb")
         buffer.buffer_points(250)
@@ -88,7 +88,7 @@ for x in fips_list:
         coverageIntersectBuffer.inputGDB = importSHP.outputGDB
         coverageIntersectBuffer.inputGDB2 = buffer.outputGDB
         coverageIntersectBuffer.outputGDBName = "_06_intersect_buffered_polygons_coverages"
-        coverageIntersectBuffer.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        coverageIntersectBuffer.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         coverageIntersectBuffer.create_gdb()
         coverageIntersectBuffer.outputGDB = path.join(coverageIntersectBuffer.outputpathfolder, coverageIntersectBuffer.outputGDBName + ".gdb")
         coverageIntersectBuffer.intersect_buffered_area_with_coverage(path_links.number_of_users)
@@ -100,7 +100,7 @@ for x in fips_list:
         selectCoverage.inputGDB = importSHP.outputGDB
         selectCoverage.inputGDB2 = select.outputGDB
         selectCoverage.outputGDBName = "_07_selected_coverage"
-        selectCoverage.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        selectCoverage.outputpathfolder = path.join(path_links.input_base_folder,importSHP.outputGDBName)
         selectCoverage.create_gdb()
         selectCoverage.outputGDB = path.join(selectCoverage.outputpathfolder, selectCoverage.outputGDBName + ".gdb")
         selectCoverage.select_Coverage_by_selected_grid(path_links.number_of_users)
@@ -114,7 +114,7 @@ for x in fips_list:
         eraseMeasuredCoverage.inputGDB = selectCoverage.outputGDB
         eraseMeasuredCoverage.inputGDB2 = coverageIntersectBuffer.outputGDB
         eraseMeasuredCoverage.outputGDBName = "_08_unmeasured_coverages"
-        eraseMeasuredCoverage.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        eraseMeasuredCoverage.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         eraseMeasuredCoverage.create_gdb()
         eraseMeasuredCoverage.outputGDB = path.join(eraseMeasuredCoverage.outputpathfolder, eraseMeasuredCoverage.outputGDBName + ".gdb")
         eraseMeasuredCoverage.erase_measured_from_selected_coverage(path_links.number_of_users)
@@ -124,7 +124,7 @@ for x in fips_list:
         diss_grid = SV.SpeedChecker()
         diss_grid.inputGDB = eraseMeasuredCoverage.outputGDB
         diss_grid.outputGDBName = "_09_merged_unmeasured_coverages"
-        diss_grid.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        diss_grid.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         diss_grid.create_gdb()
         diss_grid.outputGDB = path.join(diss_grid.outputpathfolder, diss_grid.outputGDBName + ".gdb")
         diss_grid.merge_measured_unmeasured_coverages(path_links.number_of_users)
@@ -132,9 +132,9 @@ for x in fips_list:
 
         #10: create unmeasured area
         diss_grid = SV.SpeedChecker()
-        diss_grid.inputGDB = r"D:\FCC_GIS_Projects\MFII\MF_II_Challenge_validation\Input\baseline_55\_09_merged_unmeasured_coverages.gdb"
+        diss_grid.inputGDB = diss_grid.outputGDB
         diss_grid.outputGDBName = "_10_diss_merged_unmeasured_coverages"
-        diss_grid.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        diss_grid.outputpathfolder = path.join(path_links.input_base_folder,importSHP.outputGDBName)
         diss_grid.create_gdb()
         diss_grid.outputGDB = path.join(diss_grid.outputpathfolder, diss_grid.outputGDBName + ".gdb")
         diss_grid.diss_merge_unmeasured_coverages()
@@ -148,12 +148,21 @@ for x in fips_list:
         validate_results.inputGDB = diss_grid.outputGDB
         validate_results.inputGDB2 = importSHP.outputGDB
         validate_results.outputGDBName = "_11_validated_results"
-        validate_results.outputpathfolder = path.join(path_links.input_base_folder, "baseline_55")
+        validate_results.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         validate_results.create_gdb()
         validate_results.outputGDB = path.join(validate_results.outputpathfolder, validate_results.outputGDBName + ".gdb")
         validate_results.create_results()
         validate_results.inputGDB = validate_results.outputGDB
         validate_results.calculate_results()
+
+        #12: Export Resutls
+
+        export_results = SV.SpeedChecker()
+        export_results.inputGDB = validate_results.outputGDB
+        export_results.outputfolder_name = "results"
+        export_results.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName, export_results.outputfolder_name)
+        export_results.create_folder()
+        export_results.export_results()
 
 
 
