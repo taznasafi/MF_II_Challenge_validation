@@ -2,11 +2,11 @@ import SpeedValidation as SV
 import path_links
 from os import path
 from arcpy import Exists, Delete_management
-
+import traceback, sys
 
 # import shapefiles to main gdb
 
-fips_list = ["55"]
+fips_list = ["23"]
 
 for x in fips_list:
     try:
@@ -24,20 +24,22 @@ for x in fips_list:
         importSHP.outputGDB = path.join(importSHP.outputpathfolder, importSHP.outputGDBName+".gdb")
         importSHP.import_shapefiles_to_gdb("*")
         importSHP.make_grid_id(importSHP.outputGDB)
+        importSHP.define_projection(input_gdb=importSHP.outputGDB, wildcard="*")
 
-        # 01: filter out the speed points with the state grid for each users
+        print("01: filter out the speed points with the state grid for each users")
         pointIntersect = SV.SpeedChecker()
         pointIntersect.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         pointIntersect.outputGDBName = "_01_selected_points"
         pointIntersect.create_gdb()
         pointIntersect.inputGDB = importSHP.outputGDB
 
-        pointIntersect.inputGDB2 = path_links.user_input_speed_points_gdb_path
+        pointIntersect.inputGDB2 = path.join(path_links.speed_point_inputs_base,"speed_points_state_{}".format(x),"User_points_pid.gdb")
+        print(pointIntersect.inputGDB2)
         pointIntersect.outputGDB = path.join(pointIntersect.outputpathfolder, pointIntersect.outputGDBName+".gdb")
         pointIntersect.intersect_speed_points_with_state_files(fc1_wildcard="state_boundary_{}".format(x), fc2_wildcard="*")
         pointIntersect.deleteEmptyfeaturesFiles(pointIntersect.outputGDB)
 
-        #02: intersect the points with with its own respective coverage (this will be the reference next steps)
+        print("02: intersect the points with with its own respective coverage (this will be the reference next steps")
 
         coverageIntersect = SV.SpeedChecker()
         coverageIntersect.inputGDB = importSHP.outputGDB
@@ -49,7 +51,7 @@ for x in fips_list:
         coverageIntersect.intersect_points_with_coverages(number_of_users=path_links.number_of_users)
         SV.SpeedChecker.deleteEmptyfeaturesFiles(coverageIntersect.outputGDB)
 
-        #03: Merge the point
+        print("03: Merge the point")
 
         mergePoints = SV.SpeedChecker()
         mergePoints.inputGDB = coverageIntersect.outputGDB
@@ -60,7 +62,7 @@ for x in fips_list:
         mergePoints.merge_points(number_of_users=path_links.number_of_users)
 
 
-        #04: select_state_boundary by using the merged points
+        print("04: select_state_boundary by using the merged points")
 
         select = SV.SpeedChecker()
         select.inputGDB = importSHP.outputGDB
@@ -71,7 +73,7 @@ for x in fips_list:
         select.outputGDB = path.join(select.outputpathfolder, select.outputGDBName + ".gdb")
         select.select_state_boundary_grid_cells(path_links.number_of_users)
 
-        #05: buffered the filtered points from step 1
+        print("05: buffered the filtered points from step 1")
 
         buffer = SV.SpeedChecker()
         buffer.inputGDB = pointIntersect.outputGDB
@@ -81,7 +83,7 @@ for x in fips_list:
         buffer.outputGDB = path.join(buffer.outputpathfolder, buffer.outputGDBName + ".gdb")
         buffer.buffer_points(250)
 
-        #06: Intersect the buffered polygons with its own respective the coverage (measured Coverage)
+        print("06: Intersect the buffered polygons with its own respective the coverage (measured Coverage)")
 
         coverageIntersectBuffer = SV.SpeedChecker()
         coverageIntersectBuffer.referenceGDB = coverageIntersect.outputGDB
@@ -93,7 +95,7 @@ for x in fips_list:
         coverageIntersectBuffer.outputGDB = path.join(coverageIntersectBuffer.outputpathfolder, coverageIntersectBuffer.outputGDBName + ".gdb")
         coverageIntersectBuffer.intersect_buffered_area_with_coverage(path_links.number_of_users)
 
-        #07: create selected coverage
+        print("07: create selected coverage")
 
         selectCoverage = SV.SpeedChecker()
         selectCoverage.referenceGDB = coverageIntersect.outputGDB
@@ -106,7 +108,7 @@ for x in fips_list:
         selectCoverage.select_Coverage_by_selected_grid(path_links.number_of_users)
 
 
-        #08: erase the measured coverages from the selected coverage
+        print("08: erase the measured coverages from the selected coverage")
 
 
         eraseMeasuredCoverage = SV.SpeedChecker()
@@ -119,33 +121,33 @@ for x in fips_list:
         eraseMeasuredCoverage.outputGDB = path.join(eraseMeasuredCoverage.outputpathfolder, eraseMeasuredCoverage.outputGDBName + ".gdb")
         eraseMeasuredCoverage.erase_measured_from_selected_coverage(path_links.number_of_users)
 
-        #09 merged
+        print("09 merged")
 
-        diss_grid = SV.SpeedChecker()
-        diss_grid.inputGDB = eraseMeasuredCoverage.outputGDB
-        diss_grid.outputGDBName = "_09_merged_unmeasured_coverages"
-        diss_grid.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
-        diss_grid.create_gdb()
-        diss_grid.outputGDB = path.join(diss_grid.outputpathfolder, diss_grid.outputGDBName + ".gdb")
-        diss_grid.merge_measured_unmeasured_coverages(path_links.number_of_users)
+        merge_grid = SV.SpeedChecker()
+        merge_grid.inputGDB = eraseMeasuredCoverage.outputGDB
+        merge_grid.outputGDBName = "_09_merged_unmeasured_coverages"
+        merge_grid.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
+        merge_grid.create_gdb()
+        merge_grid.outputGDB = path.join(merge_grid.outputpathfolder, merge_grid.outputGDBName + ".gdb")
+        merge_grid.merge_measured_unmeasured_coverages(path_links.number_of_users)
 
 
-        #10: create unmeasured area
-        diss_grid = SV.SpeedChecker()
-        diss_grid.inputGDB = diss_grid.outputGDB
-        diss_grid.outputGDBName = "_10_diss_merged_unmeasured_coverages"
-        diss_grid.outputpathfolder = path.join(path_links.input_base_folder,importSHP.outputGDBName)
-        diss_grid.create_gdb()
-        diss_grid.outputGDB = path.join(diss_grid.outputpathfolder, diss_grid.outputGDBName + ".gdb")
-        diss_grid.diss_merge_unmeasured_coverages()
-        diss_grid.addField(input_gdb=diss_grid.outputGDB, fc_wildcard="*",field_name="agg_unmeasured_area", field_type="Double")
-        diss_grid.calculateField(field_name="agg_unmeasured_area",expression="!Shape.geodesicArea@SQUAREMETERS!",
-                                 input_gdb= diss_grid.outputGDB, fc_wildcard="*")
+        print("10: create unmeasured area")
+        _merge_diss_grid = SV.SpeedChecker()
+        _merge_diss_grid.inputGDB = merge_grid.outputGDB
+        _merge_diss_grid.outputGDBName = "_10_diss_merged_unmeasured_coverages"
+        _merge_diss_grid.outputpathfolder = path.join(path_links.input_base_folder,importSHP.outputGDBName)
+        _merge_diss_grid.create_gdb()
+        _merge_diss_grid.outputGDB = path.join(_merge_diss_grid.outputpathfolder, _merge_diss_grid.outputGDBName + ".gdb")
+        _merge_diss_grid.diss_merge_unmeasured_coverages()
+        _merge_diss_grid.addField(input_gdb=_merge_diss_grid.outputGDB, fc_wildcard="*",field_name="agg_unmeasured_area", field_type="Double")
+        _merge_diss_grid.calculateField(field_name="agg_unmeasured_area",expression="!Shape.geodesicArea@SQUAREMETERS!",
+                                 input_gdb= _merge_diss_grid.outputGDB, fc_wildcard="*")
 
-        #11: Validate Coverages
+        print("11: Validate Coverages")
 
         validate_results = SV.SpeedChecker()
-        validate_results.inputGDB = diss_grid.outputGDB
+        validate_results.inputGDB = _merge_diss_grid.outputGDB
         validate_results.inputGDB2 = importSHP.outputGDB
         validate_results.outputGDBName = "_11_validated_results"
         validate_results.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
@@ -155,7 +157,7 @@ for x in fips_list:
         validate_results.inputGDB = validate_results.outputGDB
         validate_results.calculate_results()
 
-        #12: Export Resutls
+        print("12: Export Resutls")
 
         export_results = SV.SpeedChecker()
         export_results.inputGDB = validate_results.outputGDB
@@ -170,7 +172,12 @@ for x in fips_list:
 
 
     except:
-        print("error in your script")
+
+
+        tb = sys.exc_info()[2]
+        tbinfo = traceback.format_tb(tb)[0]
+        pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
+        print(pymsg)
 
 
 

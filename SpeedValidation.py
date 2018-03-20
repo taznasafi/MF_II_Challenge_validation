@@ -65,6 +65,34 @@ class SpeedChecker:
             logging.info(pymsg)
             logging.info(msgs)
 
+    def define_projection(self, input_gdb, wildcard):
+        logging.info("define projection")
+        try:
+
+            fc_list = get_path.pathFinder(env_0=input_gdb).get_file_path_with_wildcard_from_gdb(wildcard)
+
+            for fc in fc_list:
+                print("Defining projection for: {}.".format(os.path.basename(fc)))
+                arcpy.DefineProjection_management(fc, coor_system=r"GEOGCS['GCS_WGS_1984',DATUM['D_WGS_1984',SPHEROID['WGS_1984',6378137.0,298.257223563]],PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]]")
+                logging.info(arcpy.GetMessages(0))
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+            logging.info(msgs)
+        except:
+            tb = sys.exc_info()[2]
+            tbinfo = traceback.format_tb(tb)[0]
+            pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
+            msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
+            arcpy.AddError(pymsg)
+            arcpy.AddError(msgs)
+            print(pymsg)
+            print(msgs)
+            logging.info(pymsg)
+            logging.info(msgs)
+
     @classmethod
     def make_grid_id(cls, input_path):
         print("createing Grid IDs")
@@ -238,7 +266,7 @@ class SpeedChecker:
                     users = list(range(1,number_of_users+1))
 
                     for user in users:
-                        user_wildcard = "user_"+str(user)+"_pid_"+ pid
+                        user_wildcard = "user_"+str(user)+"_"+ pid
                         print(user_wildcard)
                         user_point_list = users_points.get_file_path_with_wildcard_from_gdb(user_wildcard)
                         if len(user_point_list) ==0:
@@ -424,12 +452,12 @@ class SpeedChecker:
                 else:
 
 
-                    regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_pid_(?P<pid2>\d{1,2})?"
+                    regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
 
                     namedic = match(regex, os.path.basename(x)).groupdict()
-                    #print(namedic)
+                    print(namedic)
 
-                    buffered_polygon_wildcard = "user_"+str(namedic["user"])+"_pid_"+namedic["pid"]+"_*"
+                    buffered_polygon_wildcard = "user_"+str(namedic["user"])+"_"+namedic["pid"]+"_*"
                     print(buffered_polygon_wildcard)
                     buffered_list = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(buffered_polygon_wildcard)
 
@@ -488,7 +516,7 @@ class SpeedChecker:
                 else:
 
 
-                    regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_pid_(?P<pid2>\d{1,2})?"
+                    regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
 
                     namedic = match(regex, os.path.basename(x)).groupdict()
                     print(namedic)
@@ -547,7 +575,7 @@ class SpeedChecker:
 
                 else:
 
-                    regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_pid_(?P<pid2>\d{1,2})?"
+                    regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
 
                     namedic = match(regex, os.path.basename(x)).groupdict()
                     print(namedic)
