@@ -22,7 +22,8 @@ for x in fips_list:
             Delete_management(path.join(importSHP.outputpathfolder, importSHP.outputGDBName+".gdb"))
         importSHP.create_gdb()
         importSHP.outputGDB = path.join(importSHP.outputpathfolder, importSHP.outputGDBName+".gdb")
-        importSHP.import_shapefiles_to_gdb("*")
+        importSHP.import_shapefiles_to_gdb("coverage_map_*")
+        importSHP.import_shapefiles_to_gdb("state_boundary_*")
         importSHP.make_grid_id(importSHP.outputGDB)
         importSHP.define_projection(input_gdb=importSHP.outputGDB, wildcard="*")
 
@@ -164,7 +165,8 @@ for x in fips_list:
         export_results.outputfolder_name = "results"
         export_results.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName, export_results.outputfolder_name)
         export_results.create_folder()
-        export_results.export_results()
+        export_results.attribute_table_to_csv(field_names=["STATE_FIPS", "GRID_COL", "GRID_ROW",
+                                           "agg_unmeasured", "agg_unmeasured_pct", "agg_measured_pct"])
 
 
 

@@ -792,3 +792,26 @@ class SpeedChecker:
             print(pymsg)
             print(msgs)
             logging.warning(msgs)
+
+
+    def attribute_table_to_csv(self, field_names):
+        import csv
+
+        fc_list = get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb()
+
+        for fc in fc_list:
+
+            output = os.path.join(self.outputpathfolder, "results_{}.csv".format(os.path.basename(fc)))
+
+            with open(output, "wb") as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerow(field_names)
+
+                with arcpy.da.SearchCursor(fc, field_names) as cursor:
+                    for row in cursor:
+                        writer.writerow(row)
+                print("output created: {}".format(output))
+
+            csv_file.close()
+
+
