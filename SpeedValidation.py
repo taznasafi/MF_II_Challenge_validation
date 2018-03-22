@@ -6,6 +6,7 @@ import time
 import get_path
 import os
 from re import match, search
+import pandas as pd
 
 formatter = ('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.basicConfig(filename=r"{}_Log_{}.csv".format(__name__.replace(".", "_"), time.strftime("%Y_%m_%d_%H_%M")),
@@ -24,6 +25,7 @@ class SpeedChecker:
         self.outputGDB = outputGDB
 
         arcpy.env.qualifiedFieldNames = False
+        arcpy.env.overwriteOutput = False
 
     def create_folder(self):
         print("creating folder")
@@ -761,38 +763,6 @@ class SpeedChecker:
             arcpy.CalculateField_management(fc, "agg_measured_pct", "100-!agg_unmeasured_pct!",
                                             expression_type="PYTHON3")
 
-    def export_results(self):
-        logging.info("exporting_results")
-
-        arcpy.env.overwriteOutput = True
-        try:
-
-            for fc in get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb():
-
-                output = os.path.join(self.outputpathfolder, "results_{}.csv".format(os.path.basename(fc)))
-
-                arcpy.ExportXYv_stats(fc, ["STATE_FIPS", "GRID_COL", "GRID_ROW",
-                                           "agg_unmeasured", "agg_unmeasured_pct", "agg_measured_pct"],
-                                      "Comma", output, "ADD_FIELD_NAMES")
-
-            arcpy.env.overwriteOutput = False
-
-        except arcpy.ExecuteError:
-            msgs = arcpy.GetMessages(2)
-            arcpy.AddError(msgs)
-            print(msgs)
-        except:
-            arcpy.env.overwriteOutput = False
-            tb = sys.exc_info()[2]
-            tbinfo = traceback.format_tb(tb)[0]
-            pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
-            msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
-            arcpy.AddError(pymsg)
-            arcpy.AddError(msgs)
-            print(pymsg)
-            print(msgs)
-            logging.warning(msgs)
-
 
     def attribute_table_to_csv(self, field_names):
         import csv
@@ -803,15 +773,14 @@ class SpeedChecker:
 
             output = os.path.join(self.outputpathfolder, "results_{}.csv".format(os.path.basename(fc)))
 
-            with open(output, "wb") as csv_file:
-                writer = csv.writer(csv_file)
-                writer.writerow(field_names)
+            arr=[]
 
-                with arcpy.da.SearchCursor(fc, field_names) as cursor:
-                    for row in cursor:
-                        writer.writerow(row)
-                print("output created: {}".format(output))
+            with arcpy.da.SearchCursor(fc, field_names) as cursor:
+                for row in cursor:
+                    arr.append(row)
 
-            csv_file.close()
+            df = pd.DataFrame(arr, columns=field_names)
+            df.to_csv(output, index=False)
+            print("output created: {}".format(output))
 
 
