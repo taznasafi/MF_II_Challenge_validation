@@ -74,10 +74,10 @@ for x in fips_list:
         select.outputGDB = path.join(select.outputpathfolder, select.outputGDBName + ".gdb")
         select.select_state_boundary_grid_cells(path_links.number_of_users)
 
-        print("05: buffered the filtered points from step 1")
+        print("05: buffered the filtered points from step 2")
 
         buffer = SV.SpeedChecker()
-        buffer.inputGDB = pointIntersect.outputGDB
+        buffer.inputGDB = coverageIntersect.outputGDB
         buffer.outputGDBName = "_05_buffered_polygons"
         buffer.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         buffer.create_gdb()
