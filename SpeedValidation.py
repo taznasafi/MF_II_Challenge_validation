@@ -459,7 +459,7 @@ class SpeedChecker:
                     namedic = match(regex, os.path.basename(x)).groupdict()
                     print(namedic)
 
-                    buffered_polygon_wildcard = "user_"+str(namedic["user"])+"_"+namedic["pid"]+"_*"
+                    buffered_polygon_wildcard = "*_User_"+str(namedic["user"])+"_"+namedic["pid"]+"_*"
                     print(buffered_polygon_wildcard)
                     buffered_list = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(buffered_polygon_wildcard)
 
@@ -652,6 +652,108 @@ class SpeedChecker:
             print(msgs)
         except:
             arcpy.Delete_management("coverage_temp")
+            tb = sys.exc_info()[2]
+            tbinfo = traceback.format_tb(tb)[0]
+            pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
+            msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
+            arcpy.AddError(pymsg)
+            arcpy.AddError(msgs)
+            print(pymsg)
+            print(msgs)
+            logging.warning(msgs)
+
+
+    def merge_measured_coverages(self, number_of_users):
+        logging.info("merging buffered polygons with coverage")
+        try:
+            user_list = list(range(1, number_of_users + 1))
+
+            for user in user_list:
+
+                coverage_wildcard = "*_user_" + str(user)
+                print(coverage_wildcard)
+                coverage_list = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(
+                    coverage_wildcard)
+
+                if number_of_users == None or number_of_users == 0:
+                    print("number of user has been set or set to zero, still under development")
+                    pass
+
+                else:
+
+                    outfeature = os.path.join(self.outputGDB, '_merged_measured_coverages_user_' + str(user))
+                    if arcpy.Exists(outfeature):
+                        print("The file exits, skipping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    logging.info("inputs: {}\noutput: {}".format(coverage_list, outfeature))
+
+                    # field mapping
+                    #1 create field map object for each field
+                    fm = arcpy.FieldMap() # STATE_FIPS
+                    fm1 = arcpy.FieldMap() # GRID_COL
+                    fm2 = arcpy.FieldMap() # GRID_ROW
+                    fm3 = arcpy.FieldMap() # ID
+
+                    #2 create field mapping object for the output table
+                    fms = arcpy.FieldMappings()
+
+                    #3 add the input field to the field map object
+
+                    for fc in coverage_list:
+
+
+                        for field in arcpy.ListFields(fc, "STATE_FIPS"):
+                            fm.addInputField(fc, field.name)
+
+                        for field in arcpy.ListFields(fc, "GRID_COL"):
+                            fm1.addInputField(fc, field.name)
+
+                        for field in arcpy.ListFields(fc, "GRID_ROW"):
+                            fm2.addInputField(fc, field.name)
+
+                        for field in arcpy.ListFields(fc, "ID"):
+                            fm3.addInputField(fc, field.name)
+
+                    #4 set field properties for each output field
+
+                    fm.mergeRule = "First"
+                    f_name = fm.outputField
+                    f_name.name = "STATE"
+                    f_name.type = "Short Integer"
+                    fm.outputField = f_name
+                    fms.addFieldMap(fm)
+
+                    fm1.mergeRule = "First"
+                    f_name = fm1.outputField
+                    f_name.name = "GRID_COL"
+                    f_name.type = "Long Integer"
+                    fm1.outputField = f_name
+                    fms.addFieldMap(fm1)
+
+                    fm2.mergeRule = "First"
+                    f_name = fm2.outputField
+                    f_name.name = "GRID_ROW"
+                    f_name.type = "Long Integer"
+                    fm2.outputField = f_name
+                    fms.addFieldMap(fm2)
+
+                    fm3.mergeRule = "First"
+                    f_name = fm3.outputField
+                    f_name.name = "ID"
+                    f_name.length = 20
+                    f_name.type = "TEXT"
+                    fm3.outputField = f_name
+                    fms.addFieldMap(fm3)
+
+                    arcpy.Merge_management(inputs=coverage_list, output=outfeature,field_mappings=fms)
+                    print(arcpy.GetMessages(0))
+                    logging.info(arcpy.GetMessages(0))
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+        except:
+
             tb = sys.exc_info()[2]
             tbinfo = traceback.format_tb(tb)[0]
             pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
