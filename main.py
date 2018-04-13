@@ -74,10 +74,10 @@ for x in fips_list:
         select.outputGDB = path.join(select.outputpathfolder, select.outputGDBName + ".gdb")
         select.select_state_boundary_grid_cells(path_links.number_of_users)
 
-        print("05: buffered the filtered points from step 2")
+        print("05: buffered the filtered points from step 1")
 
         buffer = SV.SpeedChecker()
-        buffer.inputGDB = coverageIntersect.outputGDB
+        buffer.inputGDB = pointIntersect.outputGDB
         buffer.outputGDBName = "_05_buffered_polygons"
         buffer.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         buffer.create_gdb()
@@ -130,27 +130,66 @@ for x in fips_list:
         merge_grid.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         merge_grid.create_gdb()
         merge_grid.outputGDB = path.join(merge_grid.outputpathfolder, merge_grid.outputGDBName + ".gdb")
-        merge_grid.merge_measured_unmeasured_coverages(path_links.number_of_users)
+        merge_grid.merge_unmeasured_coverages(path_links.number_of_users)
 
 
-        print("10: create unmeasured area")
+        print("10: create unmeasured area by dissovling the state fips, grid row, grid column, and id")
         _merge_diss_grid = SV.SpeedChecker()
         _merge_diss_grid.inputGDB = merge_grid.outputGDB
         _merge_diss_grid.outputGDBName = "_10_diss_merged_unmeasured_coverages"
         _merge_diss_grid.outputpathfolder = path.join(path_links.input_base_folder,importSHP.outputGDBName)
         _merge_diss_grid.create_gdb()
         _merge_diss_grid.outputGDB = path.join(_merge_diss_grid.outputpathfolder, _merge_diss_grid.outputGDBName + ".gdb")
-        _merge_diss_grid.diss_merge_unmeasured_coverages()
-        _merge_diss_grid.addField(input_gdb=_merge_diss_grid.outputGDB, fc_wildcard="*",field_name="agg_unmeasured_area", field_type="Double")
-        _merge_diss_grid.calculateField(field_name="agg_unmeasured_area",expression="!Shape.geodesicArea@SQUAREMETERS!",
-                                 input_gdb= _merge_diss_grid.outputGDB, fc_wildcard="*")
+        _merge_diss_grid.diss_by_grid(dissolved_field=["STATE_FIPS", "GRID_COL", "GRID_ROW", "ID"])
 
-        print("11: Validate Coverages")
+
+        print("11: Create_mearged selected coverages area")
+        _merge_selected_coverage = SV.SpeedChecker()
+        _merge_selected_coverage.inputGDB = selectCoverage.outputGDB
+        _merge_selected_coverage.outputGDBName = "_11_merged_selected_coverages"
+        _merge_selected_coverage.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
+        _merge_selected_coverage.create_gdb()
+        _merge_selected_coverage.outputGDB = path.join(_merge_selected_coverage.outputpathfolder,
+                                                           _merge_selected_coverage.outputGDBName + ".gdb")
+        _merge_selected_coverage.merge_selected_coverages(number_of_users=path_links.number_of_users)
+
+
+
+
+        print("12: Dissolve the merged selected coverages by grid")
+        _diss_merge_selected_coverage = SV.SpeedChecker()
+        _diss_merge_selected_coverage.inputGDB = _merge_selected_coverage.outputGDB
+        _diss_merge_selected_coverage.outputGDBName = "_12_diss_merged_selected_coverages"
+        _diss_merge_selected_coverage.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
+        _diss_merge_selected_coverage.create_gdb()
+        _diss_merge_selected_coverage.outputGDB = path.join(_diss_merge_selected_coverage.outputpathfolder,
+                                                            _diss_merge_selected_coverage.outputGDBName + ".gdb")
+        _diss_merge_selected_coverage.diss_by_grid(dissolved_field=["STATE_FIPS", "GRID_COL", "GRID_ROW", "ID"])
+
+
+        print("13: Erase unmeasured area from merged selected area")
+
+        create_measured_area = SV.SpeedChecker()
+        create_measured_area.inputGDB = _diss_merge_selected_coverage.outputGDB
+        create_measured_area.inputGDB2 = _merge_diss_grid.outputGDB
+        create_measured_area.outputGDBName = "_13_erase_unmeasured_from_selected_coverages"
+        create_measured_area.outputpathfolder = path.join(path_links.input_base_folder,
+                                                                   importSHP.outputGDBName)
+        create_measured_area.create_gdb()
+        create_measured_area.outputGDB = path.join(create_measured_area.outputpathfolder,
+                                                   create_measured_area.outputGDBName + ".gdb")
+
+        create_measured_area.erase_unmeasured_from_merged_coverage(path_links.number_of_users)
+        create_measured_area.addField(create_measured_area.outputGDB, "*", "agg_measured_raw", "Double")
+        create_measured_area.calculateField(input_gdb=create_measured_area.outputGDB,fc_wildcard="*",
+                                        field_name="agg_measured_raw",expression="!Shape.geodesicArea@SQUAREMETERS!")
+
+        print("14: Validate Coverages")
 
         validate_results = SV.SpeedChecker()
-        validate_results.inputGDB = _merge_diss_grid.outputGDB
+        validate_results.inputGDB = create_measured_area.outputGDB
         validate_results.inputGDB2 = importSHP.outputGDB
-        validate_results.outputGDBName = "_11_validated_results"
+        validate_results.outputGDBName = "_14_validated_results"
         validate_results.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         validate_results.create_gdb()
         validate_results.outputGDB = path.join(validate_results.outputpathfolder, validate_results.outputGDBName + ".gdb")
@@ -158,14 +197,17 @@ for x in fips_list:
         validate_results.inputGDB = validate_results.outputGDB
         validate_results.calculate_results()
 
-        print("12: Export Resutls")
+        print("15: Export Resutls")
 
         export_results = SV.SpeedChecker()
         export_results.inputGDB = validate_results.outputGDB
         export_results.outputfolder_name = "results"
         export_results.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName, export_results.outputfolder_name)
         export_results.create_folder()
-        export_results.attribute_table_to_csv(field_names=["STATE_FIPS", "GRID_COL", "GRID_ROW", "agg_unmeasured","agg_unmeasured_pct", "agg_measured_pct"])
+        export_results.attribute_table_to_csv(field_names=["STATE_FIPS", "GRID_COL", "GRID_ROW",
+                                                           "AREA", "WATER_AREA", "NONWO_AREA",
+                                                           "ELIG_AREA", "CH_AREA", "ID",
+                                                           "agg_unmeasured_pct", "agg_measured_pct"])
 
 
 
