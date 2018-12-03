@@ -261,34 +261,50 @@ class SpeedChecker:
 
                 print(pid)
 
+                users_points = get_path.pathFinder(env_0=self.inputGDB2)
+
                 if number_of_users == None:
-                    print("no users")
+                    print("no users specified in the input, parsing input points for users")
+
+                    all_users_list = users_points.get_path_for_all_feature_from_gdb(type="point")
+
+                    user_regex = r"User_(?P<userid>\d{1,2})_(?P<pid>\d{1,2})$"
+                    user_dic = users_points.return_list_of_unique_users(all_users_list, user_regex)
+                    users = list(user_dic.keys())
+
+
+
+
                 else:
-                    users_points = get_path.pathFinder(env_0=self.inputGDB2)
+
                     users = list(range(1,number_of_users+1))
 
-                    for user in users:
-                        user_wildcard = "user_"+str(user)+"_"+ pid
-                        print(user_wildcard)
-                        user_point_list = users_points.get_file_path_with_wildcard_from_gdb(user_wildcard)
-                        if len(user_point_list) ==0:
-                            print("did not point for this user")
+                print(users)
+                for user in users:
+
+                    user_wildcard = "user_"+str(user)+"_"+ pid
+
+                    print(user_wildcard)
+                    user_point_list = users_points.get_file_path_with_wildcard_from_gdb(user_wildcard)
+
+                    if len(user_point_list) ==0:
+                        print("did not point for this user")
+                    else:
+
+                        if arcpy.Exists(os.path.join(self.outputGDB,
+                                                 os.path.basename(coverage)+"_"+os.path.basename(user_point_list[0]))):
+                            print("The file exits, skipping!!!!!!!!!!!")
                         else:
+                            print(coverage)
+                            print(user_point_list)
+                            inlist = [coverage, user_point_list[0]]
 
-                            if arcpy.Exists(os.path.join(self.outputGDB,
-                                                     os.path.basename(coverage)+"_"+os.path.basename(user_point_list[0]))):
-                                print("The file exits, skipping!!!!!!!!!!!")
-                            else:
-                                print(coverage)
-                                print(user_point_list)
-                                inlist = [coverage, user_point_list[0]]
-
-                                arcpy.Intersect_analysis(inlist,
-                                                         os.path.join(self.outputGDB,
-                                                         os.path.basename(coverage)+"_"+os.path.basename(user_point_list[0])),
-                                                         join_attributes="ONLY_FID")
-                                print(arcpy.GetMessages(0))
-                                logging.info(arcpy.GetMessages(0))
+                            arcpy.Intersect_analysis(inlist,
+                                                     os.path.join(self.outputGDB,
+                                                     os.path.basename(coverage)+"_"+os.path.basename(user_point_list[0])),
+                                                     join_attributes="ONLY_FID")
+                            print(arcpy.GetMessages(0))
+                            logging.info(arcpy.GetMessages(0))
 
             except arcpy.ExecuteError:
                 msgs = arcpy.GetMessages(2)
@@ -307,29 +323,41 @@ class SpeedChecker:
 
     def merge_points(self, number_of_users):
         try:
+            users_points = get_path.pathFinder(env_0=self.inputGDB)
 
             if number_of_users == None:
-                pass
+                print("no users specified in the input, parsing input points for users")
+
+                all_users_list = users_points.get_path_for_all_feature_from_gdb(type="point")
+
+                user_regex = r"User_(?P<userid>\d{1,2})_(?P<pid>\d{1,2})$"
+                user_dic = users_points.return_list_of_unique_users(all_users_list, user_regex)
+                users = list(user_dic.keys())
+
             else:
 
-                users_points = get_path.pathFinder(env_0=self.inputGDB)
+
                 users = list(range(1, number_of_users + 1))
 
-                for user in users:
-                    user_wildcard ="*_user_"+str(user)+"_*"
+            for user in users:
+                user_wildcard ="*_user_"+str(user)+"_*"
 
-                    user_points_list = users_points.get_file_path_with_wildcard_from_gdb(user_wildcard)
-                    print(user_points_list,sep=",")
+                user_points_list = users_points.get_file_path_with_wildcard_from_gdb(user_wildcard)
+                print(user_points_list,sep=",")
 
-                    output = os.path.join(self.outputGDB, "_merged_points_user_"+str(user))
-                    if arcpy.Exists(output):
-                        print("output Exists, skipping!!!!!!!!!")
-                    else:
+                output = os.path.join(self.outputGDB, "_merged_points_user_"+str(user))
+                if arcpy.Exists(output):
+                    print("output Exists, skipping!!!!!!!!!")
+                else:
 
 
-                        arcpy.Merge_management(user_points_list,output)
-                        print(arcpy.GetMessages(0))
-                        logging.info(arcpy.GetMessages(0))
+
+
+
+
+                    arcpy.Merge_management(user_points_list,output, field_mappings="")
+                    print(arcpy.GetMessages(0))
+                    logging.info(arcpy.GetMessages(0))
 
 
         except arcpy.ExecuteError:
@@ -351,52 +379,65 @@ class SpeedChecker:
         print("selecting boundaries")
         arcpy.Delete_management("state_boundary_temp")
         state_grid_list=get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb("state_boundary_*")
+
+        users_points = get_path.pathFinder(env_0=self.inputGDB2)
+
         if number_of_users == None:
-            pass
+
+            print("no users specified in the input, parsing input points for users")
+
+            all_users_list = users_points.get_path_for_all_feature_from_gdb(type="point")
+
+            user_regex = r"\w+_(?P<userid>\d{1,2})$"
+            users = []
+            for x in all_users_list:
+                user_dic = search(user_regex, os.path.basename(x)).groupdict()
+                users.append(user_dic["userid"])
+
         else:
-            users_points = get_path.pathFinder(env_0=self.inputGDB2)
             users = list(range(1,number_of_users+1))
 
-            for user in users:
-                outpath = os.path.join(self.outputGDB, "selected_grid_user_{}".format(str(user)))
-                if arcpy.Exists(outpath):
-                    print("file exits, skipping")
-                else:
+        for user in users:
+            outpath = os.path.join(self.outputGDB, "selected_grid_user_{}".format(str(user)))
 
-                    user_wildcard = "*_user_"+str(user)
-                    user_points_list = users_points.get_file_path_with_wildcard_from_gdb(user_wildcard)
-                    print(user_points_list)
-                    try:
+            if arcpy.Exists(outpath):
+                print("file exits, skipping")
+            else:
 
-                        arcpy.MakeFeatureLayer_management(state_grid_list[0], "state_boundary_temp")
+                user_wildcard = "*_user_"+str(user)
+                user_points_list = users_points.get_file_path_with_wildcard_from_gdb(user_wildcard)
+                print(user_points_list)
+                try:
 
-                        arcpy.SelectLayerByLocation_management(in_layer="state_boundary_temp",
-                                                               overlap_type="CONTAINS",
-                                                               select_features=user_points_list[0],
-                                                               selection_type="NEW_SELECTION",
-                                                               invert_spatial_relationship="NOT_INVERT")
+                    arcpy.MakeFeatureLayer_management(state_grid_list[0], "state_boundary_temp")
 
-                        arcpy.CopyFeatures_management("state_boundary_temp",outpath)
-                        print(arcpy.GetMessages(0))
-                        logging.info(arcpy.GetMessages(0))
-                        arcpy.Delete_management("state_boundary_temp")
+                    arcpy.SelectLayerByLocation_management(in_layer="state_boundary_temp",
+                                                           overlap_type="CONTAINS",
+                                                           select_features=user_points_list[0],
+                                                           selection_type="NEW_SELECTION",
+                                                           invert_spatial_relationship="NOT_INVERT")
 
-                    except arcpy.ExecuteError:
-                        arcpy.Delete_management("state_boundary_temp")
-                        msgs = arcpy.GetMessages(2)
-                        arcpy.AddError(msgs)
-                        print(msgs)
-                    except:
-                        arcpy.Delete_management("state_boundary_temp")
-                        tb = sys.exc_info()[2]
-                        tbinfo = traceback.format_tb(tb)[0]
-                        pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
-                        msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
-                        arcpy.AddError(pymsg)
-                        arcpy.AddError(msgs)
-                        print(pymsg)
-                        print(msgs)
-                        logging.warning(msgs)
+                    arcpy.CopyFeatures_management("state_boundary_temp",outpath)
+                    print(arcpy.GetMessages(0))
+                    logging.info(arcpy.GetMessages(0))
+                    arcpy.Delete_management("state_boundary_temp")
+
+                except arcpy.ExecuteError:
+                    arcpy.Delete_management("state_boundary_temp")
+                    msgs = arcpy.GetMessages(2)
+                    arcpy.AddError(msgs)
+                    print(msgs)
+                except:
+                    arcpy.Delete_management("state_boundary_temp")
+                    tb = sys.exc_info()[2]
+                    tbinfo = traceback.format_tb(tb)[0]
+                    pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
+                    msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
+                    arcpy.AddError(pymsg)
+                    arcpy.AddError(msgs)
+                    print(pymsg)
+                    print(msgs)
+                    logging.warning(msgs)
 
     def buffer_points(self, buffer_distance):
         print("buffering points")
@@ -449,44 +490,38 @@ class SpeedChecker:
 
             for x in reference_List:
 
-                if number_of_users==None or number_of_users==0:
-                    print("number of user has been set or set to zero, still under development")
-                    pass
+
+                regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
+
+                namedic = match(regex, os.path.basename(x)).groupdict()
+                print(namedic)
+
+                buffered_polygon_wildcard = "User_"+str(namedic["user"])+"_"+namedic["pid"]+"_*"
+                print(buffered_polygon_wildcard)
+                buffered_list = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(buffered_polygon_wildcard)
+
+                coverage_wildcard = "Coverage_map_"+str(namedic["state_fips"])+"_"+str(namedic["pid"])+"_*"
+                print(coverage_wildcard)
+                coverage_list = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(coverage_wildcard)
+
+                if len(buffered_list)==0 or len(coverage_list)==0:
+                    print("one or more of the input list is empty, skipping this intersection job")
 
                 else:
+                    inlist = [coverage_list[0], buffered_list[0]]
 
 
-                    regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
+                    outpath = os.path.join(self.outputGDB,
+                                           os.path.basename(coverage_list[0])+"_buffered_user_"+str(namedic["user"]))
 
-                    namedic = match(regex, os.path.basename(x)).groupdict()
-                    print(namedic)
-
-                    buffered_polygon_wildcard = "User_"+str(namedic["user"])+"_"+namedic["pid"]+"_*"
-                    print(buffered_polygon_wildcard)
-                    buffered_list = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(buffered_polygon_wildcard)
-
-                    coverage_wildcard = "Coverage_map_"+str(namedic["state_fips"])+"_"+str(namedic["pid"])+"_*"
-                    print(coverage_wildcard)
-                    coverage_list = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(coverage_wildcard)
-
-                    if len(buffered_list)==0 or len(coverage_list)==0:
-                        print("one or more of the input list is empty, skipping this intersection job")
+                    if arcpy.Exists(outpath):
+                        print("output_exists, skipping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
                     else:
-                        inlist = [coverage_list[0], buffered_list[0]]
-
-
-                        outpath = os.path.join(self.outputGDB,
-                                               os.path.basename(coverage_list[0])+"_buffered_user_"+str(namedic["user"]))
-
-                        if arcpy.Exists(outpath):
-                            print("output_exists, skipping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-
-                        else:
-                            logging.info("Inlist : {}\noutpath_file: {}".format(inlist, outpath))
-                            arcpy.Intersect_analysis(inlist, outpath)
-                            print(arcpy.GetMessages(0))
-                            logging.info(arcpy.GetMessages(0))
+                        logging.info("Inlist : {}\noutpath_file: {}".format(inlist, outpath))
+                        arcpy.Intersect_analysis(inlist, outpath)
+                        print(arcpy.GetMessages(0))
+                        logging.info(arcpy.GetMessages(0))
 
         except arcpy.ExecuteError:
             msgs = arcpy.GetMessages(2)
@@ -512,43 +547,36 @@ class SpeedChecker:
 
 
             for x in reference_List:
+                arcpy.Delete_management("coverage_temp")
+                regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
 
-                if number_of_users==None or number_of_users==0:
-                    print("number of user has been set or set to zero, still under development")
-                    pass
+                namedic = match(regex, os.path.basename(x)).groupdict()
+                print(namedic)
 
+                coverage_wildcard = "Coverage_map_" + str(namedic["state_fips"]) + "_" + str(namedic["pid"]) + "_*"
+                print(coverage_wildcard)
+                coverage_list = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(
+                    coverage_wildcard)
+
+                selected_grid_wildcard = "selected_grid_user_"+namedic["user"]
+                selected_grid = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(
+                    selected_grid_wildcard)
+
+                arcpy.MakeFeatureLayer_management(coverage_list[0],"coverage_temp")
+
+                print("joing the selected_field")
+                join_field = "ID"
+                arcpy.AddJoin_management("coverage_temp", join_field, selected_grid[0], join_field, join_type="KEEP_COMMON")
+
+                outfeature = os.path.join(self.outputGDB,"selected_"+os.path.basename(coverage_list[0])+"_user_"+namedic["user"])
+                if arcpy.Exists(outfeature):
+                    print("fc exits, skipping")
                 else:
 
-
-                    regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
-
-                    namedic = match(regex, os.path.basename(x)).groupdict()
-                    print(namedic)
-
-                    coverage_wildcard = "Coverage_map_" + str(namedic["state_fips"]) + "_" + str(namedic["pid"]) + "_*"
-                    print(coverage_wildcard)
-                    coverage_list = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(
-                        coverage_wildcard)
-
-                    selected_grid_wildcard = "selected_grid_user_"+namedic["user"]
-                    selected_grid = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(
-                        selected_grid_wildcard)
-
-                    arcpy.MakeFeatureLayer_management(coverage_list[0],"coverage_temp")
-
-                    print("joing the selected_field")
-                    join_field = "ID"
-                    arcpy.AddJoin_management("coverage_temp", join_field, selected_grid[0], join_field, join_type="KEEP_COMMON")
-
-                    outfeature = os.path.join(self.outputGDB,"selected_"+os.path.basename(coverage_list[0])+"_user_"+namedic["user"])
-                    if arcpy.Exists(outfeature):
-                        print("fc exits, skipping")
-                    else:
-
-                        arcpy.CopyFeatures_management("coverage_temp",outfeature)
-                        print(arcpy.GetMessages(0))
-                        logging.info(arcpy.GetMessages(0))
-                        arcpy.Delete_management("coverage_temp")
+                    arcpy.CopyFeatures_management("coverage_temp",outfeature)
+                    print(arcpy.GetMessages(0))
+                    logging.info(arcpy.GetMessages(0))
+                    arcpy.Delete_management("coverage_temp")
 
         except arcpy.ExecuteError:
             msgs = arcpy.GetMessages(2)
@@ -577,30 +605,31 @@ class SpeedChecker:
 
             for x in reference_List:
 
-                if number_of_users == None or number_of_users == 0:
-                    print("number of user has been set or set to zero, still under development")
-                    pass
 
+
+                regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
+
+                namedic = match(regex, os.path.basename(x)).groupdict()
+                print(namedic)
+
+                selected_coverage_wildcard = "selected_coverage_map_"+str(namedic["state_fips"])+\
+                                             "_"+str(namedic["pid"])+"_"+"*_user_"+str(namedic["user"])
+                selected_Coverage_List = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(
+                    selected_coverage_wildcard)
+
+                measured_coverage_wildcard = "coverage_map_"+str(namedic["state_fips"])+\
+                                             "_"+str(namedic["pid"])+"_"+"*_user_"+str(namedic["user"])
+                print(measured_coverage_wildcard)
+                measured_coverage_List = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(
+                    measured_coverage_wildcard)
+
+
+                if len(selected_Coverage_List)==0 or len(measured_coverage_List)==0:
+                    print("Len of selected coverage list is: {} and Len of measured coverage list is: {}".format(len(selected_Coverage_List), len(measured_coverage_List)))
                 else:
 
-                    regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
-
-                    namedic = match(regex, os.path.basename(x)).groupdict()
-                    print(namedic)
-
-                    selected_coverage_wildcard = "selected_coverage_map_"+str(namedic["state_fips"])+\
-                                                 "_"+str(namedic["pid"])+"_"+"*_user_"+str(namedic["user"])
-                    selected_Coverage_List = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(
-                        selected_coverage_wildcard)
-
-                    measured_coverage_wildcard = "coverage_map_"+str(namedic["state_fips"])+\
-                                                 "_"+str(namedic["pid"])+"_"+"*_user_"+str(namedic["user"])
-                    print(measured_coverage_wildcard)
-                    measured_coverage_List = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(
-                        measured_coverage_wildcard)
-
-
-                    outfeature = os.path.join(self.outputGDB, "unmeasured_coverage_pid_"+str(namedic["pid"])+"_user_"+str(namedic["user"]))
+                    outfeature = os.path.join(self.outputGDB,
+                                              "unmeasured_coverage_pid_"+str(namedic["pid"])+"_user_"+str(namedic["user"]))
 
                     if arcpy.Exists(outfeature):
                         print("fc exits, skipping!!!!!")
@@ -634,30 +663,43 @@ class SpeedChecker:
 
         logging.info("intersecting buffered polygons with coverage")
         try:
-            user_list = list(range(1,number_of_users+1))
 
-            for user in user_list:
+            users_points = get_path.pathFinder(env_0=self.inputGDB)
+
+            if number_of_users == None:
+
+                print("no users specified in the input, parsing input points for users")
+
+                all_users_list = users_points.get_path_for_all_feature_from_gdb(type="polygon")
+
+                user_regex = r"\w+_(?P<userid>\d{1,2})$"
+                empty_list = []
+
+                for x in all_users_list:
+                    user_dic = search(user_regex, os.path.basename(x)).groupdict()
+                    empty_list.append(user_dic["userid"])
+                users = list(set(empty_list))
+            else:
+                users = list(range(1, number_of_users + 1))
+
+
+            for user in users:
 
                 coverage_wildcard = "unmeasured_coverage_pid_*" + "_user_" + str(user)
                 print(coverage_wildcard)
                 coverage_list = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(
                     coverage_wildcard)
 
-                if number_of_users == None or number_of_users == 0:
-                    print("number of user has been set or set to zero, still under development")
-                    pass
+                outfeature = os.path.join(self.outputGDB, '_merged_unmeasured_coverages_pid_user_'+str(user))
 
+                if arcpy.Exists(outfeature):
+                    print("The file exits, skipping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 else:
 
-                    outfeature = os.path.join(self.outputGDB, '_merged_unmeasured_coverages_pid_user_'+str(user))
-                    if arcpy.Exists(outfeature):
-                        print("The file exits, skipping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                    else:
-
-                        logging.info("inputs: {}\noutput: {}".format(coverage_list, outfeature))
-                        arcpy.Merge_management(inputs=coverage_list, output=outfeature)
-                        print(arcpy.GetMessages(0))
-                        logging.info(arcpy.GetMessages(0))
+                    logging.info("inputs: {}\noutput: {}".format(coverage_list, outfeature))
+                    arcpy.Merge_management(inputs=coverage_list, output=outfeature)
+                    print(arcpy.GetMessages(0))
+                    logging.info(arcpy.GetMessages(0))
 
         except arcpy.ExecuteError:
             msgs = arcpy.GetMessages(2)
@@ -679,100 +721,111 @@ class SpeedChecker:
     def merge_selected_coverages(self, number_of_users):
         logging.info("merging buffered polygons with coverage")
         try:
-            user_list = list(range(1, number_of_users + 1))
 
-            for user in user_list:
+            users_points = get_path.pathFinder(env_0=self.inputGDB)
+
+            if number_of_users == None:
+
+                print("no users specified in the input, parsing input points for users")
+
+                all_users_list = users_points.get_path_for_all_feature_from_gdb(type="polygon")
+
+                user_regex = r"\w+_(?P<userid>\d{1,2})$"
+                empty_list = []
+
+                for x in all_users_list:
+                    user_dic = search(user_regex, os.path.basename(x)).groupdict()
+                    empty_list.append(user_dic["userid"])
+                users = list(set(empty_list))
+            else:
+                users = list(range(1, number_of_users + 1))
+
+            for user in users:
 
                 coverage_wildcard = "*_user_" + str(user)
                 print(coverage_wildcard)
                 coverage_list = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(
                     coverage_wildcard)
 
-                if number_of_users == None or number_of_users == 0:
-                    print("number of user has been set or set to zero, still under development")
-                    pass
-
+                outfeature = os.path.join(self.outputGDB, '_merged_selected_coverages_user_' + str(user))
+                if arcpy.Exists(outfeature):
+                    print("The file exits, skipping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 else:
 
-                    outfeature = os.path.join(self.outputGDB, '_merged_selected_coverages_user_' + str(user))
-                    if arcpy.Exists(outfeature):
-                        print("The file exits, skipping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                    else:
+                    logging.info("inputs: {}\noutput: {}".format(coverage_list, outfeature))
 
-                        logging.info("inputs: {}\noutput: {}".format(coverage_list, outfeature))
+                    # field mapping
+                    #1 create field map object for each field
+                    fm = arcpy.FieldMap() # STATE_FIPS
+                    fm1 = arcpy.FieldMap() # GRID_COL
+                    fm2 = arcpy.FieldMap() # GRID_ROW
+                    fm3 = arcpy.FieldMap() # ID
+                    fm4 = arcpy.FieldMap() # PID
 
-                        # field mapping
-                        #1 create field map object for each field
-                        fm = arcpy.FieldMap() # STATE_FIPS
-                        fm1 = arcpy.FieldMap() # GRID_COL
-                        fm2 = arcpy.FieldMap() # GRID_ROW
-                        fm3 = arcpy.FieldMap() # ID
-                        fm4 = arcpy.FieldMap() # PID
+                    #2 create field mapping object for the output table
+                    fms = arcpy.FieldMappings()
 
-                        #2 create field mapping object for the output table
-                        fms = arcpy.FieldMappings()
+                    #3 add the input field to the field map object
 
-                        #3 add the input field to the field map object
-
-                        for fc in coverage_list:
+                    for fc in coverage_list:
 
 
-                            for field in arcpy.ListFields(fc, "STATE_FIPS"):
-                                fm.addInputField(fc, field.name)
+                        for field in arcpy.ListFields(fc, "STATE_FIPS"):
+                            fm.addInputField(fc, field.name)
 
-                            for field in arcpy.ListFields(fc, "GRID_COL"):
-                                fm1.addInputField(fc, field.name)
+                        for field in arcpy.ListFields(fc, "GRID_COL"):
+                            fm1.addInputField(fc, field.name)
 
-                            for field in arcpy.ListFields(fc, "GRID_ROW"):
-                                fm2.addInputField(fc, field.name)
+                        for field in arcpy.ListFields(fc, "GRID_ROW"):
+                            fm2.addInputField(fc, field.name)
 
-                            for field in arcpy.ListFields(fc, "ID"):
-                                fm3.addInputField(fc, field.name)
+                        for field in arcpy.ListFields(fc, "ID"):
+                            fm3.addInputField(fc, field.name)
 
-                            for field in arcpy.ListFields(fc, "PID"):
-                                fm4.addInputField(fc, field.name)
+                        for field in arcpy.ListFields(fc, "PID"):
+                            fm4.addInputField(fc, field.name)
 
-                        #4 set field properties for each output field
+                    #4 set field properties for each output field
 
-                        fm.mergeRule = "First"
-                        f_name = fm.outputField
-                        f_name.name = "STATE_FIPS"
-                        f_name.type = "Short Integer"
-                        fm.outputField = f_name
-                        fms.addFieldMap(fm)
+                    fm.mergeRule = "First"
+                    f_name = fm.outputField
+                    f_name.name = "STATE_FIPS"
+                    f_name.type = "Short Integer"
+                    fm.outputField = f_name
+                    fms.addFieldMap(fm)
 
-                        fm1.mergeRule = "First"
-                        f_name = fm1.outputField
-                        f_name.name = "GRID_COL"
-                        f_name.type = "Long Integer"
-                        fm1.outputField = f_name
-                        fms.addFieldMap(fm1)
+                    fm1.mergeRule = "First"
+                    f_name = fm1.outputField
+                    f_name.name = "GRID_COL"
+                    f_name.type = "Long Integer"
+                    fm1.outputField = f_name
+                    fms.addFieldMap(fm1)
 
-                        fm2.mergeRule = "First"
-                        f_name = fm2.outputField
-                        f_name.name = "GRID_ROW"
-                        f_name.type = "Long Integer"
-                        fm2.outputField = f_name
-                        fms.addFieldMap(fm2)
+                    fm2.mergeRule = "First"
+                    f_name = fm2.outputField
+                    f_name.name = "GRID_ROW"
+                    f_name.type = "Long Integer"
+                    fm2.outputField = f_name
+                    fms.addFieldMap(fm2)
 
-                        fm3.mergeRule = "First"
-                        f_name = fm3.outputField
-                        f_name.name = "ID"
-                        f_name.length = 20
-                        f_name.type = "TEXT"
-                        fm3.outputField = f_name
-                        fms.addFieldMap(fm3)
+                    fm3.mergeRule = "First"
+                    f_name = fm3.outputField
+                    f_name.name = "ID"
+                    f_name.length = 20
+                    f_name.type = "TEXT"
+                    fm3.outputField = f_name
+                    fms.addFieldMap(fm3)
 
-                        fm4.mergeRule = "First"
-                        f_name = fm4.outputField
-                        f_name.name = "PID"
-                        f_name.type = "Short Integer"
-                        fm4.outputField = f_name
-                        fms.addFieldMap(fm4)
+                    fm4.mergeRule = "First"
+                    f_name = fm4.outputField
+                    f_name.name = "PID"
+                    f_name.type = "Short Integer"
+                    fm4.outputField = f_name
+                    fms.addFieldMap(fm4)
 
-                        arcpy.Merge_management(inputs=coverage_list, output=outfeature,field_mappings=fms)
-                        print(arcpy.GetMessages(0))
-                        logging.info(arcpy.GetMessages(0))
+                    arcpy.Merge_management(inputs=coverage_list, output=outfeature,field_mappings=fms)
+                    print(arcpy.GetMessages(0))
+                    logging.info(arcpy.GetMessages(0))
 
         except arcpy.ExecuteError:
             msgs = arcpy.GetMessages(2)
@@ -797,38 +850,52 @@ class SpeedChecker:
         try:
 
 
+            users_points = get_path.pathFinder(env_0=self.inputGDB)
 
             if number_of_users == None or number_of_users == 0:
-                print("number of user has been set or set to zero, still under development")
-                pass
 
+                print("no users specified in the input, parsing input points for users")
+
+                all_users_list = users_points.get_path_for_all_feature_from_gdb(type="polygon")
+
+                user_regex = r"\w+_(?P<userid>\d{1,2})$"
+                empty_list = []
+
+
+                for x in all_users_list:
+                    user_dic = search(user_regex, os.path.basename(x)).groupdict()
+                    empty_list.append(user_dic["userid"])
+
+                users = list(set(empty_list))
             else:
 
                 users = list(range(1, number_of_users+1))
 
-                for user in users:
 
 
-                    merged_selected_coverage_wildcard = "*_"+str(user)
-
-                    selected_Coverage_List = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(
-                        merged_selected_coverage_wildcard)
-
-                    unmeasured_coverage_wildcard = "*_"+str(user)
-
-                    print(unmeasured_coverage_wildcard)
-                    measured_coverage_List = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(
-                        unmeasured_coverage_wildcard)
+            for user in users:
 
 
-                    outfeature = os.path.join(self.outputGDB, "_measured_area_user_"+str(user))
+                merged_selected_coverage_wildcard = "*_"+str(user)
 
-                    arcpy.Erase_analysis(in_features=selected_Coverage_List[0],
-                                         erase_features=measured_coverage_List[0],
-                                         out_feature_class=outfeature)
-                    print(arcpy.GetMessages(0))
-                    logging.info(arcpy.GetMessages(0))
-                    arcpy.Delete_management("coverage_temp")
+                selected_Coverage_List = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(
+                    merged_selected_coverage_wildcard)
+
+                unmeasured_coverage_wildcard = "*_"+str(user)
+
+                print(unmeasured_coverage_wildcard)
+                measured_coverage_List = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(
+                    unmeasured_coverage_wildcard)
+
+
+                outfeature = os.path.join(self.outputGDB, "_measured_area_user_"+str(user))
+
+                arcpy.Erase_analysis(in_features=selected_Coverage_List[0],
+                                     erase_features=measured_coverage_List[0],
+                                     out_feature_class=outfeature)
+                print(arcpy.GetMessages(0))
+                logging.info(arcpy.GetMessages(0))
+                arcpy.Delete_management("coverage_temp")
 
         except arcpy.ExecuteError:
             msgs = arcpy.GetMessages(2)
@@ -904,16 +971,19 @@ class SpeedChecker:
                     arcpy.MakeFeatureLayer_management(fc_list[0], "temp_state_boundary")
 
                     print("\nadding fields")
+                    arcpy.AddField_management("temp_state_boundary", "agg_unmeasured_pct", "Double")
+                    arcpy.AddField_management("temp_state_boundary", "agg_unmeasured", "Double")
                     arcpy.AddField_management("temp_state_boundary", "agg_measured","Double")
                     arcpy.AddField_management("temp_state_boundary", "agg_measured_pct", "Double")
-                    arcpy.AddField_management("temp_state_boundary", "agg_unmeasured_pct", "Double")
+
+
 
                     print("\nJoining {} to {} based on ID field".format(os.path.basename(x),
                                                                         os.path.basename(fc_list[0])))
                     logging.info("Joining {} to {} based on ID field".format(os.path.basename(x),
                                                                              os.path.basename(fc_list[0])))
 
-                    arcpy.AddJoin_management("temp_state_boundary", "ID", x, "ID", "KEEP_ALL")
+                    arcpy.AddJoin_management("temp_state_boundary", "ID", x, "ID", "KEEP_COMMON")
 
                     arcpy.CopyFeatures_management("temp_state_boundary",
                                                   outfeature)
@@ -947,6 +1017,8 @@ class SpeedChecker:
                                             expression_type="PYTHON3")
             arcpy.CalculateField_management(fc, "agg_unmeasured_pct", "100-!agg_measured_pct!",
                                             expression_type="PYTHON3")
+            arcpy.CalculateField_management(fc, "agg_unmeasured", '!CH_AREA!-!agg_measured!',
+                                            expression_type="PYTHON3")
 
 
     def attribute_table_to_csv(self, field_names):
@@ -968,4 +1040,204 @@ class SpeedChecker:
             df.to_csv(output, index=False)
             print("output created: {}".format(output))
 
+    @classmethod
+    def repair_geom(cls, input_GDB):
 
+        fc_list = get_path.pathFinder(env_0=input_GDB).get_path_for_all_feature_from_gdb()
+
+        for x in fc_list:
+            arcpy.RepairGeometry_management(x)
+            print(arcpy.GetMessages())
+
+
+    def export_points_for_USAC(self, search_distance):
+        print("exporting points")
+
+        points_list = get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb(type="Point")
+
+        for points in points_list:
+            print("points")
+
+            regex = r"^(?P<user>\D{0,10})_(?P<userid>\d{1,2})_(?P<pid>\d{1,2})?"
+
+            namedic = match(regex, os.path.basename(points)).groupdict()
+            print(namedic)
+
+            wildcard = "Coverage_map_*_{}_*".format(str(namedic["pid"]))
+
+            fc_list = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(wildcard=wildcard)
+
+            if len(fc_list) == 0:
+                print("did not find any points for that")
+
+            else:
+
+
+                arcpy.MakeFeatureLayer_management(points, "in_layer")
+                arcpy.MakeFeatureLayer_management(fc_list[0], "select_features_layer")
+
+                # select by location the points that are 2 kilometers away
+                try:
+
+                    outfeature = os.path.join(self.outputpathfolder,"User_"+str(namedic["userid"])+"_"+str(namedic["pid"])+"_for_USAC_system.shp")
+                    if arcpy.Exists(outfeature):
+                        print("Feature Exits, Skipping !!!!")
+                        arcpy.Delete_management("in_layer")
+                        arcpy.Delete_management("select_features_layer")
+
+                    else:
+
+
+
+                        arcpy.SelectLayerByLocation_management(in_layer="in_layer",
+                                                               overlap_type="WITHIN_A_DISTANCE_GEODESIC",
+                                                               select_features="select_features_layer",
+                                                               search_distance="{} Kilometers".format(search_distance),
+                                                               selection_type="NEW_SELECTION",
+                                                               invert_spatial_relationship="NOT_INVERT")
+
+                        arcpy.CopyFeatures_management(in_features= "in_layer",
+                                                      out_feature_class=outfeature)
+                        print("copied to location")
+
+                        arcpy.Delete_management("in_layer")
+                        arcpy.Delete_management("select_features_layer")
+
+
+                except arcpy.ExecuteError:
+                    msgs = arcpy.GetMessages(2)
+                    arcpy.AddError(msgs)
+                    print(msgs)
+
+
+                except:
+                    arcpy.Delete_management("in_layer")
+                    arcpy.Delete_management("select_features_layer")
+                    tb = sys.exc_info()[2]
+                    tbinfo = traceback.format_tb(tb)[0]
+                    pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
+                    msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
+                    arcpy.AddError(pymsg)
+                    arcpy.AddError(msgs)
+                    print(pymsg)
+                    print(msgs)
+                    logging.warning(msgs)
+
+
+    def split_attribute(self, split_field, num_users):
+        logging.info("splitting coverages")
+
+        try:
+
+            user_list = list(range(1,num_users+1))
+
+            for user in user_list:
+                fc_user_List = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb("*_{}".format(user))
+
+
+                for x in fc_user_List:
+                    name = os.path.split(x)
+
+                    print("\n\n\nlooking at '{}' feature class, please wait!!!".format(name[1]))
+                    logging.info("looking at '{}' feature class, please wait!!!".format(name[1]))
+                    print("Splitting the files, might take a while. Go for a walk :) \n\n")
+                    arcpy.SplitByAttributes_analysis(x, self.outputGDB, split_field)
+                    print(arcpy.GetMessages(0))
+
+                print("renaming the file, based on user number")
+
+                renaming_fc_list = get_path.pathFinder(env_0=self.outputGDB).get_file_path_with_wildcard_from_gdb('T*')
+
+                for fc in renaming_fc_list:
+                    arcpy.Rename_management(fc, "user_{}_{}".format(user, os.path.basename(fc)))
+                    print(arcpy.GetMessages(0))
+
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+
+    def merge_general(self, output_name):
+        logging.info("merging across users")
+
+        try:
+
+
+            fc_list = get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb()
+
+            output = os.path.join(self.outputGDB, output_name)
+
+            if not arcpy.Exists(output):
+                arcpy.Merge_management(fc_list, output)
+                print(arcpy.GetMessages(0))
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+
+    def diss_general(self, output_name, wildcard, dissolve_field=""):
+        logging.info("merging across users")
+
+        try:
+
+            fc_list = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(wildcard=wildcard)
+
+            output = os.path.join(self.outputGDB, output_name)
+
+            if not arcpy.Exists(output):
+                for fc in fc_list:
+                    arcpy.Dissolve_management(fc,output,dissolve_field)
+                    print(arcpy.GetMessages(0))
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+
+
+    def split_general(self, split_field):
+
+        try:
+
+            fc_List = get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb()
+
+
+            for x in fc_List:
+                name = os.path.split(x)
+
+                print("\n\n\nlooking at '{}' feature class, please wait!!!".format(name[1]))
+                logging.info("looking at '{}' feature class, please wait!!!".format(name[1]))
+                print("Splitting the files, might take a while. Go for a walk :) \n\n")
+                arcpy.SplitByAttributes_analysis(x, self.outputGDB, split_field)
+                print(arcpy.GetMessages(0))
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+
+
+    def intersect_general(self, output_name, wildcard_1, wildcard_2):
+        logging.info("intersecting features")
+        try:
+
+            fc_list_1 = get_path.pathFinder(env_0=self.inputGDB).get_file_path_with_wildcard_from_gdb(wildcard=wildcard_1)
+            fc_list_2 = get_path.pathFinder(env_0=self.inputGDB2).get_file_path_with_wildcard_from_gdb(wildcard=wildcard_2)
+
+            in_fc_list = fc_list_1+fc_list_2
+
+            if not arcpy.Exists(os.path.join(self.outputGDB, output_name)):
+                arcpy.Intersect_analysis(in_features=in_fc_list, out_feature_class=os.path.join(self.outputGDB, output_name))
+                print(arcpy.GetMessages())
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+
+class adjudicate(SpeedChecker):
+    def __init__(self):
+        SpeedChecker.__init__(self,input_path=None, inputGDB=None, inputGDB2 = None, referenceGDB = None,
+                 outputGDBname=None, outputpathfolder=None, outputfolder_name = None, outputGDB=None)

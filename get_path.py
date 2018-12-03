@@ -98,3 +98,45 @@ class pathFinder:
 
 
 
+    @classmethod
+    def filter_List_of_shapefiles_paths_with_wildcard(self, path_link_list, wildcard):
+        for path_link in path_link_list:
+            if fnmatch.fnmatch(os.path.basename(path_link), wildcard+".shp"):
+                return path_link
+
+    @classmethod
+    def return_list_of_unique_users(cls, inlist, regex_code):
+        from re import match,search
+        from collections import defaultdict
+
+        d = defaultdict(list)
+
+        data = []
+        for element in inlist:
+            #print(element)
+            user = search(regex_code, os.path.basename(element)).groupdict()
+            #print(user)
+            data.append((user["userid"], user["pid"]))
+
+        #print(data)
+
+        for userid, pid in data:
+            d[userid].append(pid)
+
+        return dict(d)
+
+
+    @classmethod
+    def get_unique_from_attribure_value(cls, in_file_list, field_name):
+
+        master_dic = {}
+        for fc in in_file_list:
+            field_list = []
+
+            with arcpy.da.SearchCursor(fc, field_name) as cursor:
+                for row in cursor:
+                    field_list.append(row[0])
+
+            master_dic[fc]= list(set(field_list))
+
+        return master_dic
