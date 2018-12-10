@@ -10,11 +10,11 @@ import get_path
 
 buffer_size = 400
 
-user_dic = get_path.pathFinder.get_state_and_user_ID_dic(table_path=path_links.number_of_users_file_path)
 
-for state in list(user_dic.keys()):
+
+for state in ['23']:
     try:
-        number_of_users = len(user_dic[state])
+        number_of_users = int(input("what is the number of users:   "))
         print("working on State: {}\nNumber of User in the state: {}".format(state, number_of_users))
 
         # import shapefiles to main gdb
@@ -23,7 +23,6 @@ for state in list(user_dic.keys()):
         importSHP.outputGDBName = "baseline_" + state
         importSHP.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         importSHP.create_folder()
-        importSHP.outputGDB = path.join(importSHP.outputpathfolder, importSHP.outputGDBName + ".gdb")
         if not Exists(path.join(importSHP.outputpathfolder, importSHP.outputGDBName+".gdb")):
             importSHP.create_gdb()
             importSHP.import_shapefiles_to_gdb("coverage_map_*")
@@ -39,7 +38,7 @@ for state in list(user_dic.keys()):
         pointIntersect.create_gdb()
         pointIntersect.inputGDB = importSHP.outputGDB
 
-        pointIntersect.inputGDB2 = path.join(path_links.speed_point_inputs_base,"User_points_pid_{}".format(state), "User_points_pid_{}.gdb".format(state))
+        pointIntersect.inputGDB2 = path.join(path_links.speed_point_inputs_base,"speed_points_state_{}".format(state), "User_points_pid.gdb")
         print(pointIntersect.inputGDB2)
         pointIntersect.outputGDB = path.join(pointIntersect.outputpathfolder, pointIntersect.outputGDBName+".gdb")
         pointIntersect.intersect_speed_points_with_state_files(fc1_wildcard="state_boundary_{}".format(state), fc2_wildcard="*")
@@ -56,7 +55,7 @@ for state in list(user_dic.keys()):
         coverageIntersect.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         coverageIntersect.create_gdb()
         coverageIntersect.outputGDB = path.join(coverageIntersect.outputpathfolder, coverageIntersect.outputGDBName + ".gdb")
-        coverageIntersect.intersect_points_with_coverages(number_of_users=None)
+        coverageIntersect.intersect_points_with_coverages(number_of_users=number_of_users)
         SV.SpeedChecker.deleteEmptyfeaturesFiles(coverageIntersect.outputGDB)
 
         print("03: Merge the point")
@@ -67,7 +66,7 @@ for state in list(user_dic.keys()):
         mergePoints.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         mergePoints.create_gdb()
         mergePoints.outputGDB = path.join(mergePoints.outputpathfolder, mergePoints.outputGDBName + ".gdb")
-        mergePoints.merge_points(number_of_users=None)
+        mergePoints.merge_points(number_of_users=number_of_users)
 
 
         print("04: select_state_boundary by using the merged points")
@@ -79,7 +78,7 @@ for state in list(user_dic.keys()):
         select.outputpathfolder = path.join(path_links.input_base_folder,importSHP.outputGDBName)
         select.create_gdb()
         select.outputGDB = path.join(select.outputpathfolder, select.outputGDBName + ".gdb")
-        select.select_state_boundary_grid_cells(number_of_users=None)
+        select.select_state_boundary_grid_cells(number_of_users)
 
         print("05: buffered the filtered points from step 1")
 
@@ -101,7 +100,7 @@ for state in list(user_dic.keys()):
         coverageIntersectBuffer.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         coverageIntersectBuffer.create_gdb()
         coverageIntersectBuffer.outputGDB = path.join(coverageIntersectBuffer.outputpathfolder, coverageIntersectBuffer.outputGDBName + ".gdb")
-        coverageIntersectBuffer.intersect_buffered_area_with_coverage(number_of_users=None)
+        coverageIntersectBuffer.intersect_buffered_area_with_coverage(number_of_users)
 
         print("07: create selected coverage")
 
@@ -113,7 +112,7 @@ for state in list(user_dic.keys()):
         selectCoverage.outputpathfolder = path.join(path_links.input_base_folder,importSHP.outputGDBName)
         selectCoverage.create_gdb()
         selectCoverage.outputGDB = path.join(selectCoverage.outputpathfolder, selectCoverage.outputGDBName + ".gdb")
-        selectCoverage.select_Coverage_by_selected_grid(number_of_users=None)
+        selectCoverage.select_Coverage_by_selected_grid(number_of_users)
         selectCoverage.repair_geom(input_GDB=selectCoverage.outputGDB)
 
 
@@ -128,7 +127,7 @@ for state in list(user_dic.keys()):
         eraseMeasuredCoverage.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         eraseMeasuredCoverage.create_gdb()
         eraseMeasuredCoverage.outputGDB = path.join(eraseMeasuredCoverage.outputpathfolder, eraseMeasuredCoverage.outputGDBName + ".gdb")
-        eraseMeasuredCoverage.erase_measured_from_selected_coverage(number_of_users=None)
+        eraseMeasuredCoverage.erase_measured_from_selected_coverage(number_of_users)
 
         print("09 merged")
 
@@ -138,7 +137,7 @@ for state in list(user_dic.keys()):
         merge_grid.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
         merge_grid.create_gdb()
         merge_grid.outputGDB = path.join(merge_grid.outputpathfolder, merge_grid.outputGDBName + ".gdb")
-        merge_grid.merge_unmeasured_coverages(number_of_users=None)
+        merge_grid.merge_unmeasured_coverages(number_of_users)
 
 
         print("10: create unmeasured area by dissovling the state fips, grid row, grid column, and id")
@@ -159,52 +158,52 @@ for state in list(user_dic.keys()):
         _merge_selected_coverage.create_gdb()
         _merge_selected_coverage.outputGDB = path.join(_merge_selected_coverage.outputpathfolder,
                                                            _merge_selected_coverage.outputGDBName + ".gdb")
-        _merge_selected_coverage.merge_selected_coverages(number_of_users=None)
+        _merge_selected_coverage.merge_selected_coverages(number_of_users=number_of_users)
 
 
         print("11A: Erase unmeasured area from merged selected area")
 
-        create_measured_area = SV.SpeedChecker()
-        create_measured_area.inputGDB = _merge_selected_coverage.outputGDB
-        create_measured_area.inputGDB2 = merge_grid.outputGDB
-        create_measured_area.outputGDBName = "_11A_erase_unmeasured_from_selected_coverages"
-        create_measured_area.outputpathfolder = path.join(path_links.input_base_folder,
-                                                          importSHP.outputGDBName)
-        create_measured_area.create_gdb()
-        create_measured_area.outputGDB = path.join(create_measured_area.outputpathfolder,
-                                                   create_measured_area.outputGDBName + ".gdb")
+        #create_measured_area = SV.SpeedChecker()
+        #create_measured_area.inputGDB = _merge_selected_coverage.outputGDB
+        #create_measured_area.inputGDB2 = merge_grid.outputGDB
+        #create_measured_area.outputGDBName = "_11A_erase_unmeasured_from_selected_coverages"
+        #create_measured_area.outputpathfolder = path.join(path_links.input_base_folder,
+        #                                                 importSHP.outputGDBName)
+        #create_measured_area.create_gdb()
+        #create_measured_area.outputGDB = path.join(create_measured_area.outputpathfolder,
+        #                                           create_measured_area.outputGDBName + ".gdb")
 
-        ##create_measured_area.erase_unmeasured_from_merged_coverage(None)
+        #create_measured_area.erase_unmeasured_from_merged_coverage(number_of_users)
 
         print("11B: Merge accross user")
-        merge_accross_user = SV.SpeedChecker()
-        merge_accross_user.inputGDB = create_measured_area.outputGDB
-        merge_accross_user.outputGDBName = "_11B_merged_measured_area"
-        merge_accross_user.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
-        merge_accross_user.create_gdb()
-        merge_accross_user.outputGDB = path.join(merge_accross_user.outputpathfolder, merge_accross_user.outputGDBName+".gdb")
+        #merge_accross_user = SV.SpeedChecker()
+        #merge_accross_user.inputGDB = create_measured_area.outputGDB
+        #merge_accross_user.outputGDBName = "_11B_merged_measured_area"
+        #merge_accross_user.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
+        #merge_accross_user.create_gdb()
+        #merge_accross_user.outputGDB = path.join(merge_accross_user.outputpathfolder, merge_accross_user.outputGDBName+".gdb")
         #merge_accross_user.merge_general("_merged_mersured_area")
 
         print("11C: Dissovle by PID")
-        diss_fc = SV.SpeedChecker()
-        diss_fc.inputGDB = merge_accross_user.outputGDB
-        diss_fc.outputGDBName = "_11C_dissovled_by_PID_measured_area"
-        diss_fc.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
-        diss_fc.create_gdb()
-        diss_fc.outputGDB = path.join(diss_fc.outputpathfolder,
-                                      diss_fc.outputGDBName + ".gdb")
+        #diss_fc = SV.SpeedChecker()
+        #diss_fc.inputGDB = merge_accross_user.outputGDB
+        #diss_fc.outputGDBName = "_11C_dissovled_by_PID_measured_area"
+        #diss_fc.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
+        #diss_fc.create_gdb()
+        #diss_fc.outputGDB = path.join(diss_fc.outputpathfolder,
+        #                              diss_fc.outputGDBName + ".gdb")
         #diss_fc.diss_general(output_name="diss_measured_area",wildcard="_merged_mersured_area", dissolve_field="")
 
 
 
         print("11D: Intersect with the state Grid")
-        intersect_grid = SV.SpeedChecker()
-        intersect_grid.inputGDB = importSHP.outputGDB
-        intersect_grid.inputGDB2 = diss_fc.outputGDB
-        intersect_grid.outputGDBName = "_11D_intersect_measured_area_with_state_grid"
-        intersect_grid.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
-        intersect_grid.create_gdb()
-        intersect_grid.outputGDB = path.join(intersect_grid.outputpathfolder, intersect_grid.outputGDBName+".gdb")
+        #intersect_grid = SV.SpeedChecker()
+        #intersect_grid.inputGDB = importSHP.outputGDB
+        #intersect_grid.inputGDB2 = diss_fc.outputGDB
+        #intersect_grid.outputGDBName = "_11D_intersect_measured_area_with_state_grid"
+        #intersect_grid.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
+        #intersect_grid.create_gdb()
+        #intersect_grid.outputGDB = path.join(intersect_grid.outputpathfolder, intersect_grid.outputGDBName+".gdb")
         #intersect_grid.intersect_general("measured_area_PASI",
         #                                 wildcard_1="state_boundary_{}".format(state),
         #                                 wildcard_2="diss_measured_area")
@@ -220,13 +219,13 @@ for state in list(user_dic.keys()):
         #                              expression="!Shape.geodesicArea@SQUAREMETERS!")
 
         print("11E: Split the measured area by pid")
-        split_measured_area = SV.SpeedChecker()
-        split_measured_area.inputGDB = intersect_grid.outputGDB
-        split_measured_area.outputGDBName = "_11E_split_by_PID_across_users"
-        split_measured_area.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
-        split_measured_area.create_gdb()
-        split_measured_area.outputGDB = path.join(split_measured_area.outputpathfolder,
-                                                  split_measured_area.outputGDBName + ".gdb")
+        #split_measured_area = SV.SpeedChecker()
+        #split_measured_area.inputGDB = intersect_grid.outputGDB
+        #split_measured_area.outputGDBName = "_11E_split_by_PID_across_users"
+        #split_measured_area.outputpathfolder = path.join(path_links.input_base_folder, importSHP.outputGDBName)
+        #split_measured_area.create_gdb()
+        #split_measured_area.outputGDB = path.join(split_measured_area.outputpathfolder,
+        #                                          split_measured_area.outputGDBName + ".gdb")
         #split_measured_area.split_general(split_field=["PID"])
 
 
@@ -253,7 +252,7 @@ for state in list(user_dic.keys()):
         create_measured_area.outputGDB = path.join(create_measured_area.outputpathfolder,
                                                    create_measured_area.outputGDBName + ".gdb")
 
-        create_measured_area.erase_unmeasured_from_merged_coverage(None)
+        create_measured_area.erase_unmeasured_from_merged_coverage(number_of_users)
         create_measured_area.addField(create_measured_area.outputGDB, "*", "agg_measured_raw", "Double")
         create_measured_area.calculateField(input_gdb=create_measured_area.outputGDB,fc_wildcard="*",
                                         field_name="agg_measured_raw",expression="!Shape.geodesicArea@SQUAREMETERS!")
@@ -293,7 +292,7 @@ for state in list(user_dic.keys()):
         point_exporter.outputpathfolder = path.join(path_links.input_base_folder, "baseline_" + state, "results",
                                                     point_exporter.outputfolder_name)
         point_exporter.create_folder()
-        #point_exporter.export_points_for_USAC(search_distance=0.7)
+        point_exporter.export_points_for_USAC(search_distance=0.7)
 
 
     except:

@@ -2,6 +2,7 @@ import fnmatch
 import os
 import arcpy
 import path_links
+import pandas as pd
 
 class pathFinder:
 
@@ -42,7 +43,7 @@ class pathFinder:
     @classmethod
     # create a list of fips from the table.
     def make_fips_list(cls):
-        import pandas as pd
+
         Fips_table_path = path_links.Fips_table_path
         data = pd.read_csv(Fips_table_path, sep='|')
         data["STATE"] = data["STATE"].astype(str)
@@ -86,15 +87,75 @@ class pathFinder:
         else:
             return list(file_loc)
 
+
+
     @classmethod
-    # create a list of fips from the table.
-    def make_fips_list(cls):
-        import pandas as pd
-        Fips_table_path = path_links.Fips_table_path
-        data = pd.read_csv(Fips_table_path, sep='|')
-        data["STATE"] = data["STATE"].astype(str)
-        data['STATE'] = data["STATE"].apply(lambda x: x.zfill(2))
-        return data.STATE.tolist()
+    def filter_List_of_shapefiles_paths_with_wildcard(self, path_link_list, wildcard):
+        for path_link in path_link_list:
+            if fnmatch.fnmatch(os.path.basename(path_link), wildcard+".shp"):
+                return path_link
+
+    @classmethod
+    def return_list_of_unique_users(cls, inlist, regex_code):
+        from re import match,search
+        from collections import defaultdict
+
+        d = defaultdict(list)
+
+        data = []
+        for element in inlist:
+            #print(element)
+            user = search(regex_code, os.path.basename(element)).groupdict()
+            #print(user)
+            data.append((user["userid"], user["pid"]))
+
+        #print(data)
+
+        for userid, pid in data:
+            d[userid].append(pid)
+
+        return dict(d)
+
+
+    @classmethod
+    def get_unique_from_attribure_value(cls, in_file_list, field_name):
+
+        master_dic = {}
+        for fc in in_file_list:
+            field_list = []
+
+            with arcpy.da.SearchCursor(fc, field_name) as cursor:
+                for row in cursor:
+                    field_list.append(row[0])
+
+            master_dic[fc]= list(set(field_list))
+
+        return master_dic
+
+    @classmethod
+    def get_state_and_user_ID_dic(cls, table_path):
+        df = pd.read_csv(table_path)
+        df["state_fips"] = df["state_fips"].astype(str)
+        df['state_fips'] = df["state_fips"].apply(lambda x: x.zfill(2))
 
 
 
+        return df.groupby('state_fips').apply(lambda x: x.to_dict(orient='list')['challenger_id']).to_dict()
+
+    @classmethod
+    def get_path_of_a_file(cls, path, wildcard, extention):
+
+            file_loc = []
+
+            # use os.walk to find the root, directory, and files
+            for root, dirs, files in os.walk(path):
+                # create a loop by files
+                for file in fnmatch.filter(files, wildcard + extention):
+                    # for the files that endswith .shp, join the root and file
+                    file_loc.append(os.path.join(root, file))
+
+            if list(file_loc) == 'NoneType':
+                raise Warning("Did not find path, check your wild card")
+
+            else:
+                return list(file_loc)

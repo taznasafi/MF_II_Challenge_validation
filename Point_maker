@@ -1,0 +1,25 @@
+import SpeedValidation as SV, get_path, path_links
+import os
+from arcpy import Exists
+
+buffer_size = 400
+
+user_dic = get_path.pathFinder.get_state_and_user_ID_dic(table_path=path_links.number_of_users_file_path)
+
+for state in list(user_dic.keys()):
+
+    print("working on State: {}\n".format(state))
+    path_links.input_base_folder = r"D:\FCC_GIS_Projects\MFII\Challenge_data\test_folder"
+    point_maker = SV.PointMaker()
+    point_maker.inputpath = path_links.point_table_folder_path
+    point_maker.outputGDBName = "User_points_pid_"+ state
+    point_maker.outputpathfolder = os.path.join(path_links.input_base_folder, point_maker.outputGDBName)
+    point_maker.create_folder()
+
+    if not Exists(os.path.join(point_maker.outputpathfolder, point_maker.outputGDBName+".gdb")):
+        point_maker.create_gdb()
+
+    point_maker.outputGDB = os.path.join(point_maker.outputpathfolder, point_maker.outputGDBName+".gdb")
+    point_maker.XY_table_to_Point_feature(x_coords="longitude", y_coords="latitude",
+                                          z_coords="",wildcard="cst_{}_*".format(state),extention_of_file=".csv", cs="4326")
+
