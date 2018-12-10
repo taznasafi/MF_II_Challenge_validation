@@ -268,7 +268,7 @@ class SpeedChecker:
 
                     all_users_list = users_points.get_path_for_all_feature_from_gdb(type="point")
 
-                    user_regex = r"User_(?P<userid>\d{1,2})_(?P<pid>\d{1,2})$"
+                    user_regex = r"User_(?P<userid>\d{1,3})_(?P<pid>\d{1,2})$"
                     user_dic = users_points.return_list_of_unique_users(all_users_list, user_regex)
                     users = list(user_dic.keys())
 
@@ -330,7 +330,7 @@ class SpeedChecker:
 
                 all_users_list = users_points.get_path_for_all_feature_from_gdb(type="point")
 
-                user_regex = r"User_(?P<userid>\d{1,2})_(?P<pid>\d{1,2})$"
+                user_regex = r"User_(?P<userid>\d{1,3})_(?P<pid>\d{1,2})$"
                 user_dic = users_points.return_list_of_unique_users(all_users_list, user_regex)
                 users = list(user_dic.keys())
 
@@ -388,7 +388,7 @@ class SpeedChecker:
 
             all_users_list = users_points.get_path_for_all_feature_from_gdb(type="point")
 
-            user_regex = r"\w+_(?P<userid>\d{1,2})$"
+            user_regex = r"\w+_(?P<userid>\d{1,3})$"
             users = []
             for x in all_users_list:
                 user_dic = search(user_regex, os.path.basename(x)).groupdict()
@@ -451,17 +451,19 @@ class SpeedChecker:
                 print(outfeature)
                 if arcpy.Exists(outfeature):
                     print("file exits, skiping!!!!!!")
+                else:
 
-                arcpy.Buffer_analysis(in_features=x,
-                                      out_feature_class=outfeature,
-                                      buffer_distance_or_field="{} Meters".format(buffer_distance),
-                                      line_side="FULL",
-                                      line_end_type="ROUND",
-                                      dissolve_option="ALL",
-                                      dissolve_field="",
-                                      method="GEODESIC")
-                print(arcpy.GetMessages(0))
-                logging.info(arcpy.GetMessages(0))
+
+                    arcpy.Buffer_analysis(in_features=x,
+                                          out_feature_class=outfeature,
+                                          buffer_distance_or_field="{} Meters".format(buffer_distance),
+                                          line_side="FULL",
+                                          line_end_type="ROUND",
+                                          dissolve_option="ALL",
+                                          dissolve_field="",
+                                          method="GEODESIC")
+                    print(arcpy.GetMessages(0))
+                    logging.info(arcpy.GetMessages(0))
 
         except arcpy.ExecuteError:
             arcpy.Delete_management("state_boundary_temp")
@@ -491,7 +493,7 @@ class SpeedChecker:
             for x in reference_List:
 
 
-                regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
+                regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,3})_(?P<pid2>\d{1,2})?"
 
                 namedic = match(regex, os.path.basename(x)).groupdict()
                 print(namedic)
@@ -548,7 +550,7 @@ class SpeedChecker:
 
             for x in reference_List:
                 arcpy.Delete_management("coverage_temp")
-                regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
+                regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,3})_(?P<pid2>\d{1,2})?"
 
                 namedic = match(regex, os.path.basename(x)).groupdict()
                 print(namedic)
@@ -607,7 +609,7 @@ class SpeedChecker:
 
 
 
-                regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,2})_(?P<pid2>\d{1,2})?"
+                regex = r"^coverage_map_(?P<state_fips>\d{2})_(?P<pid>\d{1,2})_(?:\w+?)_(?P<user>\d{1,3})_(?P<pid2>\d{1,2})?"
 
                 namedic = match(regex, os.path.basename(x)).groupdict()
                 print(namedic)
@@ -672,7 +674,7 @@ class SpeedChecker:
 
                 all_users_list = users_points.get_path_for_all_feature_from_gdb(type="polygon")
 
-                user_regex = r"\w+_(?P<userid>\d{1,2})$"
+                user_regex = r"\w+_(?P<userid>\d{1,3})$"
                 empty_list = []
 
                 for x in all_users_list:
@@ -730,7 +732,7 @@ class SpeedChecker:
 
                 all_users_list = users_points.get_path_for_all_feature_from_gdb(type="polygon")
 
-                user_regex = r"\w+_(?P<userid>\d{1,2})$"
+                user_regex = r"\w+_(?P<userid>\d{1,3})$"
                 empty_list = []
 
                 for x in all_users_list:
@@ -858,7 +860,7 @@ class SpeedChecker:
 
                 all_users_list = users_points.get_path_for_all_feature_from_gdb(type="polygon")
 
-                user_regex = r"\w+_(?P<userid>\d{1,2})$"
+                user_regex = r"\w+_(?P<userid>\d{1,3})$"
                 empty_list = []
 
 
@@ -958,7 +960,7 @@ class SpeedChecker:
                 fc_list = get_path.pathFinder(env_0=self.inputGDB2)\
                     .get_file_path_with_wildcard_from_gdb("state_boundary_*")
 
-                regex = r"(?:\W)?(?P<user>\d{1,2})$"
+                regex = r"(?:\W)?(?P<user>\d{1,3})$"
                 userdic = search(regex, os.path.basename(x)).groupdict()
 
 
@@ -1022,7 +1024,7 @@ class SpeedChecker:
 
 
     def attribute_table_to_csv(self, field_names):
-        import csv
+
 
         fc_list = get_path.pathFinder(env_0=self.inputGDB).get_path_for_all_feature_from_gdb()
 
@@ -1058,7 +1060,7 @@ class SpeedChecker:
         for points in points_list:
             print("points")
 
-            regex = r"^(?P<user>\D{0,10})_(?P<userid>\d{1,2})_(?P<pid>\d{1,2})?"
+            regex = r"^(?P<user>\D{0,10})_(?P<userid>\d{1,3})_(?P<pid>\d{1,2})?"
 
             namedic = match(regex, os.path.basename(points)).groupdict()
             print(namedic)
@@ -1237,7 +1239,49 @@ class SpeedChecker:
             arcpy.AddError(msgs)
             print(msgs)
 
-class adjudicate(SpeedChecker):
+class PointMaker(SpeedChecker):
+
     def __init__(self):
-        SpeedChecker.__init__(self,input_path=None, inputGDB=None, inputGDB2 = None, referenceGDB = None,
-                 outputGDBname=None, outputpathfolder=None, outputfolder_name = None, outputGDB=None)
+        SpeedChecker.__init__(self,input_path=None, inputGDB=None, inputGDB2=None, referenceGDB=None,
+                              outputGDBname=None, outputpathfolder=None, outputfolder_name = None, outputGDB=None)
+
+    def XY_table_to_Point_feature(self, x_coords, y_coords, z_coords, wildcard, extention_of_file, cs,
+                                  regex = r'(?i)^(?P<stem>cst_(?P<state_fips>\d+)_challenger_(?P<user_id>\d+)_provider_(?P<provider_id>\d+))\.(?P<ext>csv)$'):
+        print("making XY(Z) Points")
+        try:
+
+            in_fc_list = get_path.pathFinder.get_path_of_a_file(self.inputpath,wildcard=wildcard,extention=extention_of_file)
+
+            for x in in_fc_list:
+
+                file_name_parsed_dict = search(regex, os.path.basename(x)).groupdict()
+                print(file_name_parsed_dict)
+
+                output = os.path.join(self.outputGDB, "User_{}_{}".format(file_name_parsed_dict['user_id'],
+                                                                          file_name_parsed_dict['provider_id']))
+
+                if not arcpy.Exists(output):
+                    arcpy.XYTableToPoint_management(x,output,x_coords,y_coords,z_coords,cs)
+                    print(arcpy.GetMessages(0))
+
+
+
+
+        except arcpy.ExecuteError:
+            msgs = arcpy.GetMessages(2)
+            arcpy.AddError(msgs)
+            print(msgs)
+
+
+        except:
+
+            tb = sys.exc_info()[2]
+            tbinfo = traceback.format_tb(tb)[0]
+            pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
+            msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
+            arcpy.AddError(pymsg)
+            arcpy.AddError(msgs)
+            print(pymsg)
+            print(msgs)
+            logging.warning(msgs)
+

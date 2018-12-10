@@ -2,6 +2,7 @@ import fnmatch
 import os
 import arcpy
 import path_links
+import pandas as pd
 
 class pathFinder:
 
@@ -42,7 +43,7 @@ class pathFinder:
     @classmethod
     # create a list of fips from the table.
     def make_fips_list(cls):
-        import pandas as pd
+
         Fips_table_path = path_links.Fips_table_path
         data = pd.read_csv(Fips_table_path, sep='|')
         data["STATE"] = data["STATE"].astype(str)
@@ -85,16 +86,6 @@ class pathFinder:
 
         else:
             return list(file_loc)
-
-    @classmethod
-    # create a list of fips from the table.
-    def make_fips_list(cls):
-        import pandas as pd
-        Fips_table_path = path_links.Fips_table_path
-        data = pd.read_csv(Fips_table_path, sep='|')
-        data["STATE"] = data["STATE"].astype(str)
-        data['STATE'] = data["STATE"].apply(lambda x: x.zfill(2))
-        return data.STATE.tolist()
 
 
 
@@ -140,3 +131,31 @@ class pathFinder:
             master_dic[fc]= list(set(field_list))
 
         return master_dic
+
+    @classmethod
+    def get_state_and_user_ID_dic(cls, table_path):
+        df = pd.read_csv(table_path)
+        df["state_fips"] = df["state_fips"].astype(str)
+        df['state_fips'] = df["state_fips"].apply(lambda x: x.zfill(2))
+
+
+
+        return df.groupby('state_fips').apply(lambda x: x.to_dict(orient='list')['challenger_id']).to_dict()
+
+    @classmethod
+    def get_path_of_a_file(cls, path, wildcard, extention):
+
+            file_loc = []
+
+            # use os.walk to find the root, directory, and files
+            for root, dirs, files in os.walk(path):
+                # create a loop by files
+                for file in fnmatch.filter(files, wildcard + extention):
+                    # for the files that endswith .shp, join the root and file
+                    file_loc.append(os.path.join(root, file))
+
+            if list(file_loc) == 'NoneType':
+                raise Warning("Did not find path, check your wild card")
+
+            else:
+                return list(file_loc)
